@@ -7,6 +7,9 @@ package main
 import (
 	"fmt"
 	"time"
+	"os"
+	"os/exec"
+	"bufio"
 )
 
 const gameBoardSize int = 20
@@ -28,6 +31,8 @@ const CLR_M = "\x1b[35;1m"
 const CLR_C = "\x1b[36;1m"
 const CLR_W = "\x1b[37;1m"
 const CLR_N = "\x1b[0m"
+
+const chars  = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 
 func d (debugMsg string) {
 	fmt.Printf("D: ")
@@ -58,9 +63,18 @@ func initGameBoard(size int) (gameBoard [][]int) {
 	return
 }
 
+func clear_screen_linux() {
+        cmd := exec.Command("clear") //Linux example, its tested
+        cmd.Stdout = os.Stdout
+        cmd.Run()
+    }
+
 func doUserStep(gameBoard [][]int) {
 	d("do user step")
+
+
 }
+// a9-11
 
 /*
  * name: drawGameBoard
@@ -74,7 +88,20 @@ func doUserStep(gameBoard [][]int) {
 func drawGameBoard(gameBoard [][]int) {
 	d("draw game board")
 
+	//for i:=  range gameBoard {
+		//fmt.Sprintf("%c ", chars[i])
+	//}
+
+	var length int = len(gameBoard)
+
+	fmt.Printf("    ")
+	for i := 0; i < length; i++ {
+		fmt.Printf("%c ", chars[i])
+    }
+	fmt.Println()
 	for i := range gameBoard {
+		fmt.Printf("%2d  ", i)
+
 		for j:= range gameBoard[i] {
 
 			if fieldEmptyCellId == gameBoard[i][j] {
@@ -124,14 +151,26 @@ func main() {
 
 
 
+	reader := bufio.NewReader(os.Stdin)
+    fmt.Print("Enter text: ")
+    text, _ := reader.ReadString('\n')
+    fmt.Println(text)
+
+
+
+	return
+
 	var mainGameBoard [][]int = initGameBoard(gameBoardSize)
-	drawGameBoard(mainGameBoard)
 
 	var isWin int = 0
 	for /* empty */; isWin == 0; /* empty */ {
-		d("test")
+
+		clear_screen_linux()
+		drawGameBoard(mainGameBoard)
 
 		doUserStep(mainGameBoard);
+
+		clear_screen_linux()
 		drawGameBoard(mainGameBoard);
 		isWin = getWinner(mainGameBoard);
 		if 0 != isWin {
@@ -139,6 +178,7 @@ func main() {
 		}
 
 		doAIStep(mainGameBoard);
+		clear_screen_linux()
 		drawGameBoard(mainGameBoard);
 		isWin = getWinner(mainGameBoard);
 		if 0 != isWin {
