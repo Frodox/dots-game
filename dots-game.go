@@ -10,6 +10,8 @@ import (
 	"os"
 	"os/exec"
 	"bufio"
+	"strconv"
+	"strings"
 )
 
 const gameBoardSize int = 20
@@ -20,7 +22,7 @@ const fieldPCCellChar 		string = "+"
 
 const fieldEmptyCellId 	int = 0
 const fieldUserCellId 	int = 1
-const fieldPCCellId		int = 2
+const fieldPCCellId	int = 2
 
 const CLR_0 = "\x1b[30;1m"
 const CLR_R = "\x1b[31;1m"
@@ -32,12 +34,12 @@ const CLR_C = "\x1b[36;1m"
 const CLR_W = "\x1b[37;1m"
 const CLR_N = "\x1b[0m"
 
-const chars  = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+const chars  string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+"
 
 func d (debugMsg string) {
 	fmt.Printf("D: ")
 	fmt.Println(debugMsg)
-	time.Sleep(time.Second)
+	time.Sleep(500 * time.Millisecond)
 }
 
 func initGameBoard(size int) (gameBoard [][]int) {
@@ -70,11 +72,45 @@ func clear_screen_linux() {
     }
 
 func doUserStep(gameBoard [][]int) {
-	d("do user step")
 
+	var firstIndex int  = 0
+	var secondIndex int = 0
 
+	var fineInput int = 0;
+	for fineInput != 1 {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Your turn: [int char] > ")
+		text, _ := reader.ReadString('\n')
+		text = strings.Trim(text, "\n ")
+
+		var tmp []string = strings.Split(text, " ");
+		if len(tmp) != 2 {
+			fmt.Println("Please, input 2 coords!");
+			continue
+		}
+
+		// TODO: check for error
+		tmpInt64, _ := strconv.ParseInt(tmp[0], 10, 0);
+		firstIndex = int(tmpInt64)
+
+		secondIndex = strings.Index(chars, tmp[1])
+
+		if firstIndex  >= gameBoardSize || firstIndex < 0 ||
+		   secondIndex >= gameBoardSize || secondIndex < 0 {
+			fmt.Printf("Both index should be in game field range!\n");
+			continue
+		}
+
+		res := doGameStep(gameBoard, firstIndex, secondIndex, fieldUserCellId);
+		if 0 != res {
+			fmt.Printf("Look's like cell is not empty or error occured\n");
+			continue
+		}
+		fineInput = 1;
+	}
+
+	//fmt.Printf("First id %d , second id: %d\n", firstIndex, secondIndex);
 }
-// a9-11
 
 /*
  * name: drawGameBoard
@@ -86,11 +122,6 @@ func doUserStep(gameBoard [][]int) {
  * 2 mean PC    cell -- draw fieldPCCellChar (red)
  */
 func drawGameBoard(gameBoard [][]int) {
-	d("draw game board")
-
-	//for i:=  range gameBoard {
-		//fmt.Sprintf("%c ", chars[i])
-	//}
 
 	var length int = len(gameBoard)
 
@@ -114,6 +145,22 @@ func drawGameBoard(gameBoard [][]int) {
 		}
 		fmt.Println("")
 	}
+}
+
+/*
+ * return 0 if fine
+ * 	  1 if cell not empty already or error occured
+ */
+func doGameStep(gameBoard [][]int, x int, y int, symbol int) (result int) {
+
+	if fieldEmptyCellId == gameBoard[x][y] {
+		gameBoard[x][y] = symbol
+		result = 0
+	} else {
+		result = 1
+	}
+
+	return
 }
 
 func getWinner(gameBoard [][]int) (winner int) {
@@ -149,16 +196,6 @@ func printWinner(winnerNumber int) {
 func main() {
 	fmt.Println("\n\t = = = Greeting in 'Dots' game = = =\n");
 
-
-
-	reader := bufio.NewReader(os.Stdin)
-    fmt.Print("Enter text: ")
-    text, _ := reader.ReadString('\n')
-    fmt.Println(text)
-
-
-
-	return
 
 	var mainGameBoard [][]int = initGameBoard(gameBoardSize)
 
