@@ -1,5 +1,5 @@
 /*
- * Here description of my game
+ * Here description of my Dots game
  *
  */
 package main
@@ -14,15 +14,15 @@ import (
 	"strings"
 )
 
-const gameBoardSize int = 20
+const gameBoardSize 		int = 20
 
 const fieldEmptyCellChar 	string = "."
 const fieldUserCellChar 	string = "*"
 const fieldPCCellChar 		string = "+"
 
-const fieldEmptyCellId 	int = 0
-const fieldUserCellId 	int = 1
-const fieldPCCellId	int = 2
+const fieldEmptyCellId 		int = 0
+const fieldUserCellId 		int = 1
+const fieldPCCellId		int = 2
 
 const CLR_0 = "\x1b[30;1m"
 const CLR_R = "\x1b[31;1m"
@@ -55,12 +55,6 @@ func initGameBoard(size int) (gameBoard [][]int) {
 	for i := range gameBoard {
 		gameBoard[i], pixels = pixels[:size], pixels[size:]
 	}
-
-	//test
-	gameBoard[2][3] = 1 // user
-	gameBoard[3][5] = 2 // PC
-
-
 
 	return
 }
