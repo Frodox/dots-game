@@ -12,6 +12,7 @@ import (
 	"bufio"
 	"strconv"
 	"strings"
+	"math/rand"
 )
 
 const gameBoardSize 		int = 20
@@ -167,6 +168,21 @@ func getWinner(gameBoard [][]int) (winner int) {
 
 func doAIStep(gameBoard [][]int) {
 	d("do AI step")
+
+	var stepIsDone = 0
+	for 1 != stepIsDone {
+		// suppose that field is square/rectangle
+		var x int = rand.Intn(len(gameBoard))
+		var y int = rand.Intn(len(gameBoard[0]))
+		fmt.Printf("values: x: %d, y: %d\n", x, y)
+
+		res := doGameStep(gameBoard, x, y, fieldPCCellId)
+		if 0 != res {
+			continue
+		}
+
+		stepIsDone = 1
+	}
 
 }
 
