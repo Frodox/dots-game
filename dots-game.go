@@ -38,6 +38,7 @@ const CLR_N = "\x1b[0m"			// reset color
 
 const chars  string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+"
 
+var stepNumber int = 0;
 
 // ------------------------------ STRUCTS ----------------------------------- //
 type GameBoardNode struct {
@@ -246,7 +247,7 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 
 	//цикл для всех ячеек по контуру игрового поля
 	//{
-		// закраситьЯчеку(i, j, step)
+		// закраситьЯчеку(i, j, stepCount)
 
 
 		//funct закраситьЯчеку(i, j, stepCount){
