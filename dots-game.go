@@ -15,64 +15,80 @@ import (
 	"math/rand"
 )
 
-const gameBoardSize 		int = 20
+// ---------------------------------- CONSTS -------------------------------- //
+const gameBoardSize			int = 20
 
-const fieldEmptyCellChar 	string = "."
-const fieldUserCellChar 	string = "*"
-const fieldPCCellChar 		string = "+"
+const fieldEmptyCellChar	string = "."
+const fieldUserCellChar		string = "*"
+const fieldPCCellChar		string = "+"
 
-const fieldEmptyCellId 		int = 0
+const fieldEmptyCellId		int = 0
 const fieldUserCellId 		int = 1
-const fieldPCCellId		int = 2
+const fieldPCCellId			int = 2
 
 const CLR_0 = "\x1b[30;1m"
-const CLR_R = "\x1b[31;1m"
+const CLR_R = "\x1b[31;1m"		// red
 const CLR_G = "\x1b[32;1m"
 const CLR_Y = "\x1b[33;1m"
-const CLR_B = "\x1b[34;1m"
+const CLR_B = "\x1b[34;1m"		// blue
 const CLR_M = "\x1b[35;1m"
 const CLR_C = "\x1b[36;1m"
 const CLR_W = "\x1b[37;1m"
-const CLR_N = "\x1b[0m"
+const CLR_N = "\x1b[0m"			// reset color
 
 const chars  string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+"
 
-type gameBoardNode struct {
-	value int;	// 0, 1, 2 (Empty, User, PC)
+
+// ------------------------------ STRUCTS ----------------------------------- //
+type GameBoardNode struct {
+	value	int;		// 0, 1, 2 (Empty, User, PC)
 }
 
+type Player struct {
+	stepId	int;		// 0, 1, 2 (Empty, User, PC)
+	score 	int;		//  score of this player. 0 by default
+	}
+
+
+// ------------------------------ FUNCTIONS --------------------------------- //
 func d (debugMsg string) {
 	fmt.Printf("D: ")
 	fmt.Println(debugMsg)
 	time.Sleep(400 * time.Millisecond)
 }
 
-func initGameBoard(size int) (gameBoard [][]gameBoardNode) {
+/* ------------------------------------------------------------------------- */
+
+func initGameBoard(size int) (gameBoard [][]GameBoardNode) {
 
 	// Allocate the top-level slice, the same as before.
-	gameBoard = make([][]gameBoardNode, size) // One row per unit of y.
+	gameBoard = make([][]GameBoardNode, size) // One row per unit of y.
 
 	// Allocate one large slice to hold all the pixels.
-	pixels := make([]gameBoardNode, size*size)
+	pixels := make([]GameBoardNode, size*size)
 
 	// Loop over the rows, slicing each row from the front of the remaining pixels slice.
 	for i := range gameBoard {
 		gameBoard[i], pixels = pixels[:size], pixels[size:]
 	}
 
-	gameBoard[0][1].value = 1
-	gameBoard[1][0].value = 1
-	gameBoard[2][1].value = 1
-	gameBoard[1][2].value = 1
+	//gameBoard[0][1].value = 1
+	//gameBoard[1][0].value = 1
+	//gameBoard[2][1].value = 1
+	//gameBoard[1][2].value = 1
 
 	return
 }
+
+/* ------------------------------------------------------------------------- */
 
 func clear_screen_linux() {
         cmd := exec.Command("clear") //Linux example, its tested
         cmd.Stdout = os.Stdout
         cmd.Run()
     }
+
+/* ------------------------------------------------------------------------- */
 
 /*
  * name: drawGameBoard
@@ -83,7 +99,7 @@ func clear_screen_linux() {
  * 1 mean user  cell -- draw fieldUserCellChar (blue)
  * 2 mean PC    cell -- draw fieldPCCellChar (red)
  */
-func drawGameBoard(gameBoard [][]gameBoardNode) {
+func drawGameBoard(gameBoard [][]GameBoardNode, userPlayer *Player, pcPlayer *Player) {
 
 	var length int = len(gameBoard)
 
@@ -108,10 +124,15 @@ func drawGameBoard(gameBoard [][]gameBoardNode) {
 		fmt.Println("")
 	}
 
-	// TODO: Print game scrore. User : xxx; PC: xxx.
+	fmt.Println("Game score")
+	fmt.Printf("User: %s%d%s\t\tPC: %s%d%s\n",
+			CLR_B, userPlayer.score, CLR_N,
+			CLR_R, pcPlayer.score,   CLR_N)
 }
 
-func doUserStep(gameBoard [][]gameBoardNode) {
+/* ------------------------------------------------------------------------- */
+
+func doUserStep(gameBoard [][]GameBoardNode) {
 
 	var firstIndex  int = 0
 	var secondIndex int = 0
@@ -152,11 +173,13 @@ func doUserStep(gameBoard [][]gameBoardNode) {
 	//fmt.Printf("First id %d , second id: %d\n", firstIndex, secondIndex);
 }
 
+/* ------------------------------------------------------------------------- */
+
 /*
  * return 0 if fine
  * 	  1 if cell not empty already or error occured
  */
-func doGameStep(gameBoard [][]gameBoardNode, x int, y int, symbol int) (result int) {
+func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result int) {
 
 	if fieldEmptyCellId == gameBoard[x][y].value {
 		gameBoard[x][y].value = symbol
@@ -169,8 +192,9 @@ func doGameStep(gameBoard [][]gameBoardNode, x int, y int, symbol int) (result i
 }
 
 
+/* ------------------------------------------------------------------------- */
 
-func doAIStep(gameBoard [][]gameBoardNode) {
+func doAIStep(gameBoard [][]GameBoardNode) {
 	d("do AI step")
 
 	var stepIsDone = 0
@@ -190,6 +214,8 @@ func doAIStep(gameBoard [][]gameBoardNode) {
 
 }
 
+/* ------------------------------------------------------------------------- */
+
 /*
  * name: printWinner
  * @param
@@ -205,38 +231,43 @@ func printWinner(winnerNumber int) {
 	d("we have winner")
 }
 
+/* ------------------------------------------------------------------------- */
+
 /*
  * Calculate game score
  *
  */
-func calculateScore(gameBoard [][]gameBoardNode, playerSymbol int) {
+func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
+
+	player.score += 10
 
 	// подсчёт очков для игрока,
 	// у которого символ поля - @playerSymbol
 
-	цикл дял всех ячеек по контуру игрового поля
-	{
-		функция закраски ячейки (i, j, step){
+	//цикл дял всех ячеек по контуру игрового поля
+	//{
+		//функция закраски ячейки (i, j, step){
 
 
-			если это ячейка Этого пользователя или захвачена --
-				закрашиваем её().
-				заносим, что это было на ходе @step
+			//если это ячейка Этого пользователя или захвачена --
+				//закрашиваем её().
+				//заносим, что это было на ходе @step
 
-				вызываем функцию закраски для всех соседей
-					слева,
-					справа,
-					сверху
-					снизу
-			иначе
-				возврат
+				//вызываем функцию закраски для всех соседей
+					//слева,
+					//справа,
+					//сверху
+					//снизу
+			//иначе
+				//возврат
 
 
-		}
-	}
+		//}
+	//}
 
 	// оставшиеся незакрашенные ячейки - это контура,
 	// которые требуется *захватить*
+	/*
 	цикл по всем ячейкам поля {
 
 		если текущая ячейка ЗАКРАШЕНА -
@@ -255,6 +286,7 @@ func calculateScore(gameBoard [][]gameBoardNode, playerSymbol int) {
 		// -------------------------------------- //
 	}
 
+	*/
 
 
 
@@ -262,10 +294,23 @@ func calculateScore(gameBoard [][]gameBoardNode, playerSymbol int) {
 }
 
 /*
+ * Calculate all game score for two players
+ */
+
+func calculateGameScore(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) {
+
+	calculateScorePerPlayer(gameBoard, player1)
+	calculateScorePerPlayer(gameBoard, player2)
+
+}
+
+/* ------------------------------------------------------------------------- */
+
+/*
  * Detect, if there any winner on game board
  *
  */
-func getWinner(gameBoard [][]gameBoardNode) (winner int) {
+func getWinner(gameBoard [][]GameBoardNode) (winner int) {
 	d("get winner")
 
 	/* if emptyCellExist
@@ -279,6 +324,7 @@ func getWinner(gameBoard [][]gameBoardNode) (winner int) {
 	winner = 0
 	return
 }
+
 /* ========================================================================= */
 
 func main() {
@@ -286,29 +332,32 @@ func main() {
 
 	time.Sleep(2 * time.Second)
 
-	var mainGameBoard [][]gameBoardNode = initGameBoard(gameBoardSize)
+	var mainGameBoard [][]GameBoardNode = initGameBoard(gameBoardSize)
+	var userPlayer 	= Player{fieldUserCellId, 0}
+	var pcPlayer 	= Player{fieldPCCellId, 0}
+
 
 	var isWin int = 0
 	for /* empty */; isWin == 0; /* empty */ {
 
 		clear_screen_linux()
-		drawGameBoard(mainGameBoard)
+		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 
 		doUserStep(mainGameBoard);
-		calculateScore()
+		calculateGameScore(mainGameBoard, &userPlayer, &pcPlayer)
 
 		clear_screen_linux()
-		drawGameBoard(mainGameBoard);
+		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 		isWin = getWinner(mainGameBoard);
 		if 0 != isWin {
 			break
 		}
 
 		doAIStep(mainGameBoard);
-		calculateScore()
+		calculateGameScore(mainGameBoard, &userPlayer, &pcPlayer)
 
 		clear_screen_linux()
-		drawGameBoard(mainGameBoard);
+		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 		isWin = getWinner(mainGameBoard);
 		if 0 != isWin {
 			break;
