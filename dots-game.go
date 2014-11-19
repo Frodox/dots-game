@@ -16,7 +16,7 @@ import (
 )
 
 // ---------------------------------- CONSTS -------------------------------- //
-const gameBoardSize			int = 20
+const gameBoardSize			int = 10
 
 const fieldEmptyCellChar	string = "."
 const fieldUserCellChar		string = "*"
@@ -41,13 +41,14 @@ const chars  string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ12345
 
 // ------------------------------ STRUCTS ----------------------------------- //
 type GameBoardNode struct {
-	value	int;		// 0, 1, 2 (Empty, User, PC)
+	value			int;		// 0, 1, 2 (Empty, User, PC)
+	belongsToPlayer int;		// @id of player, who owns or captured this cell
 }
 
 type Player struct {
 	stepId	int;		// 0, 1, 2 (Empty, User, PC)
 	score 	int;		//  score of this player. 0 by default
-	}
+}
 
 
 // ------------------------------ FUNCTIONS --------------------------------- //
@@ -128,6 +129,8 @@ func drawGameBoard(gameBoard [][]GameBoardNode, userPlayer *Player, pcPlayer *Pl
 	fmt.Printf("User: %s%d%s\t\tPC: %s%d%s\n",
 			CLR_B, userPlayer.score, CLR_N,
 			CLR_R, pcPlayer.score,   CLR_N)
+
+	// TODO: если ячейка захвачена другим игроком -- сменить значок на '#'
 }
 
 /* ------------------------------------------------------------------------- */
@@ -182,7 +185,8 @@ func doUserStep(gameBoard [][]GameBoardNode) {
 func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result int) {
 
 	if fieldEmptyCellId == gameBoard[x][y].value {
-		gameBoard[x][y].value = symbol
+		gameBoard[x][y].value 			= symbol
+		gameBoard[x][y].belongsToPlayer = symbol
 		result = 0
 	} else {
 		result = 1
@@ -234,69 +238,70 @@ func printWinner(winnerNumber int) {
 /* ------------------------------------------------------------------------- */
 
 /*
- * Calculate game score
+ * Calculate score for one player
  *
  */
 func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 
-	player.score += 10
 
-	// подсчёт очков для игрока,
-	// у которого символ поля - @playerSymbol
-
-	//цикл дял всех ячеек по контуру игрового поля
+	//цикл для всех ячеек по контуру игрового поля
 	//{
-		//функция закраски ячейки (i, j, step){
+		// закраситьЯчеку(i, j, step)
 
 
-			//если это ячейка Этого пользователя или захвачена --
-				//закрашиваем её().
-				//заносим, что это было на ходе @step
+		//funct закраситьЯчеку(i, j, stepCount){
+			// stepCount - номер хода
+			// stepId - значение ячейки,
+			//          соответствующее о принадлежности конкретному пользователю
 
+
+			//если выходим за границы или
+				 //закрашено на текущем шаге или
+				 //тут точка текущегоИгрока
+				//возврат
+
+			//иначе
+				//устанавливаем бит закраски ячейки на шаге @stepCount
 				//вызываем функцию закраски для всех соседей
 					//слева,
 					//справа,
 					//сверху
 					//снизу
-			//иначе
-				//возврат
-
-
 		//}
 	//}
 
-	// оставшиеся незакрашенные ячейки - это контура,
-	// которые требуется *захватить*
+	// оставшиеся незакрашенные ячейки - это внутренности контуров,
+	// которые требуется *захватить* текущему пользователю
 	/*
 	цикл по всем ячейкам поля {
 
 		если текущая ячейка ЗАКРАШЕНА -
-		возврат
+			возврат
+		иначе
+			захватить ячейку [i][j]
 
-		захватить ячейку [i][j]
 
 		// фнкция захвата_ячейки() //
 
-		если это вражеская ячейка,
+		если ячейка принадлежит игроку @текущему
+			возврат
+		иначе
+			сменить принадлежность ячейки на текущего игрока
 			увеличить счёт текущего игрока (+1)
 
-		пометить ячейку как захваченную
-		// TODO: добавить в функцию doGameStep()
-		// 		проверку, захвачена ли ячейка
-		// -------------------------------------- //
 	}
 
 	*/
 
 
 
-
 }
 
-/*
- * Calculate all game score for two players
- */
+/* ------------------------------------------------------------------------- */
 
+/*
+ * Calculate all game score for the game (for both players)
+ */
 func calculateGameScore(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) {
 
 	calculateScorePerPlayer(gameBoard, player1)
@@ -308,12 +313,11 @@ func calculateGameScore(gameBoard [][]GameBoardNode, player1 *Player, player2 *P
 
 /*
  * Detect, if there any winner on game board
- *
  */
 func getWinner(gameBoard [][]GameBoardNode) (winner int) {
 	d("get winner")
 
-	/* if emptyCellExist
+	/* if emptyCellExist()
 	 * 		return (no winner)
 	 * else
 	 * 		return (scoreUser > scorePC) ? userWin : pcWin;
@@ -333,8 +337,8 @@ func main() {
 	time.Sleep(2 * time.Second)
 
 	var mainGameBoard [][]GameBoardNode = initGameBoard(gameBoardSize)
-	var userPlayer 	= Player{fieldUserCellId, 0}
-	var pcPlayer 	= Player{fieldPCCellId, 0}
+	var userPlayer 	= Player{stepId: fieldUserCellId, score: 0}
+	var pcPlayer 	= Player{stepId: fieldPCCellId, score: 0}
 
 
 	var isWin int = 0
