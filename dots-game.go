@@ -1,6 +1,8 @@
 /*
  * Here description of my Dots game
+ * Vit Ry <developer@bitthinker.com> (c) 2014
  *
+ * ts: 4
  */
 package main
 
@@ -16,7 +18,7 @@ import (
 )
 
 // ---------------------------------- CONSTS -------------------------------- //
-const gameBoardSize			int = 8
+const gameBoardSize			int = 4
 
 const fieldEmptyCellChar	string = "."
 const fieldUserCellChar		string = "*"
@@ -77,12 +79,25 @@ func initGameBoard(size int) (gameBoard [][]GameBoardNode) {
 		gameBoard[i], pixels = pixels[:size], pixels[size:]
 	}
 
-	//gameBoard[0][1].value = 1
-	//gameBoard[1][0].value = 1
-	//gameBoard[2][1].value = 1
-	//gameBoard[1][2].value = 1
+	gameBoard[0][1].value = 1
+	gameBoard[1][0].value = 1
+	gameBoard[2][1].value = 1
+	gameBoard[1][2].value = 1
+	gameBoard[1][1].value = 2
+
+	gameBoard[0][1].belongsToPlayer = 1
+	gameBoard[1][0].belongsToPlayer = 1
+	gameBoard[2][1].belongsToPlayer = 1
+	gameBoard[1][2].belongsToPlayer = 1
+	gameBoard[1][1].belongsToPlayer = 2
 
 	return
+}
+
+func pause() {
+	for {
+		
+	}
 }
 
 /* ------------------------------------------------------------------------- */
@@ -298,9 +313,11 @@ func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
  */
 func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 
+	fmt.Printf("D: Calculate score per user\n");
 	var lastBoardIndex int = len(gameBoard) -1
 	// go over the gameBoard edge and paint over every cell
 
+	fmt.Printf("D: index: %d\n", lastBoardIndex);
 
 	// iterate over all rows
 	for index, _ := range gameBoard {
@@ -319,25 +336,31 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 		}
     }
 
+	debug_print_gameBoard(gameBoard);
+
+	//pause();
+
     //time.Sleep(2 * time.Second)
-    fmt.Println(gameBoard)
+    //fmt.Println(gameBoard)
 
 	// not painted cells may contain captured cells
-	for _, row := range gameBoard {
-		for _, cell := range row {
+	for i, row := range gameBoard {
+		for j, cell := range row {
 
 			// if already painted out, return
 			if 0 != cell.paintedId && stepNumber == cell.paintedOnStep {
-				return
+				continue
 			} else {
 
 				// capture this cell
 
 				// if it is already this player's cell - do nothing
 				if player.stepId == cell.belongsToPlayer {
-					return
+					continue
 				} else {
+					fmt.Println("captyre item ", i, j);
 					cell.belongsToPlayer = player.stepId
+					gameBoard[i][j].belongsToPlayer = player.stepId
 					player.score += 1
 				}
 
@@ -347,7 +370,21 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 	}
 
 
+	time.Sleep(2*time.Second);
 
+}
+
+func debug_print_gameBoard(gameBoard [][]GameBoardNode) {
+	// print all field in readable format
+
+	fmt.Printf("val,pla,painId,paintS\n");
+
+	for _, row := range gameBoard {
+		for _, cell := range row {
+			fmt.Printf("%d,%d,%d,%-5d ", cell.value, cell.belongsToPlayer, cell.paintedId, cell.paintedOnStep);
+		}
+		fmt.Println();
+	}
 }
 
 /* ------------------------------------------------------------------------- */
@@ -358,7 +395,7 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 func calculateGameScore(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) {
 
 	calculateScorePerPlayer(gameBoard, player1)
-	calculateScorePerPlayer(gameBoard, player2)
+	//calculateScorePerPlayer(gameBoard, player2)
 
 }
 
@@ -387,7 +424,7 @@ func getWinner(gameBoard [][]GameBoardNode) (winner int) {
 func main() {
 	fmt.Println("\n\t = = = Greeting in 'Dots' game = = =\n");
 
-	time.Sleep(2 * time.Second)
+	//time.Sleep(2 * time.Second)
 
 	var mainGameBoard [][]GameBoardNode = initGameBoard(gameBoardSize)
 	var userPlayer 	= Player{stepId: fieldUserCellId, score: 0}
@@ -397,13 +434,13 @@ func main() {
 	var isWin int = 0
 	for /* empty */; isWin == 0; /* empty */ {
 
-		clear_screen_linux()
+		//clear_screen_linux()
 		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 
 		doUserStep(mainGameBoard);
 		calculateGameScore(mainGameBoard, &userPlayer, &pcPlayer)
 
-		clear_screen_linux()
+		//clear_screen_linux()
 		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 		isWin = getWinner(mainGameBoard);
 		if 0 != isWin {
@@ -413,7 +450,7 @@ func main() {
 		doAIStep(mainGameBoard);
 		calculateGameScore(mainGameBoard, &userPlayer, &pcPlayer)
 
-		clear_screen_linux()
+		//clear_screen_linux()
 		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 		isWin = getWinner(mainGameBoard);
 		if 0 != isWin {
