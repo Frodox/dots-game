@@ -18,11 +18,12 @@ import (
 )
 
 // ---------------------------------- CONSTS -------------------------------- //
-const gameBoardSize			int = 4
+const gameBoardSize			int = 8
 
 const fieldEmptyCellChar	string = "."
 const fieldUserCellChar		string = "*"
 const fieldPCCellChar		string = "+"
+const fieldCapturedCellChar	string = "#"
 
 const fieldEmptyCellId		int = 0
 const fieldUserCellId 		int = 1
@@ -49,6 +50,7 @@ type GameBoardNode struct {
 	belongsToPlayer int;		// @id of player, who owns or captured this cell
 	paintedId		int;		// @id of player, who paintOut this cell
 	paintedOnStep	int;		// on the game's step @paintedOnStep
+	captured		int;		// (0|1) - if this cell was captured by any player
 }
 
 type Player struct {
@@ -79,17 +81,17 @@ func initGameBoard(size int) (gameBoard [][]GameBoardNode) {
 		gameBoard[i], pixels = pixels[:size], pixels[size:]
 	}
 
-	gameBoard[0][1].value = 1
-	gameBoard[1][0].value = 1
-	gameBoard[2][1].value = 1
-	gameBoard[1][2].value = 1
-	gameBoard[1][1].value = 2
+	//gameBoard[0][1].value = 1
+	//gameBoard[1][0].value = 1
+	//gameBoard[2][1].value = 1
+	//gameBoard[1][2].value = 1
+	//gameBoard[1][1].value = 2
 
-	gameBoard[0][1].belongsToPlayer = 1
-	gameBoard[1][0].belongsToPlayer = 1
-	gameBoard[2][1].belongsToPlayer = 1
-	gameBoard[1][2].belongsToPlayer = 1
-	gameBoard[1][1].belongsToPlayer = 2
+	//gameBoard[0][1].belongsToPlayer = 1
+	//gameBoard[1][0].belongsToPlayer = 1
+	//gameBoard[2][1].belongsToPlayer = 1
+	//gameBoard[1][2].belongsToPlayer = 1
+	//gameBoard[1][1].belongsToPlayer = 2
 
 	return
 }
@@ -121,25 +123,45 @@ func clear_screen_linux() {
  */
 func drawGameBoard(gameBoard [][]GameBoardNode, userPlayer *Player, pcPlayer *Player) {
 
-	var length int = len(gameBoard)
-	// TOOD: use @length everywhere
-
 	fmt.Printf("    ")
+	var length int = len(gameBoard)
 	for i := 0; i < length; i++ {
 		fmt.Printf("%c ", chars[i])
     }
 	fmt.Println()
-	for i := range gameBoard {
+
+	for i, row := range gameBoard {
 		fmt.Printf("%2d  ", i)
 
-		for j:= range gameBoard[i] {
+		for _, cell := range row {
 
-			if fieldEmptyCellId == gameBoard[i][j].value {
-				fmt.Printf("%s ", fieldEmptyCellChar)
-			} else if fieldUserCellId == gameBoard[i][j].value {
-				fmt.Printf("%s%s%s ", CLR_B, fieldUserCellChar, CLR_N)
-			} else if fieldPCCellId == gameBoard[i][j].value {
-				fmt.Printf("%s%s%s ", CLR_R, fieldPCCellChar, CLR_N)
+			if fieldEmptyCellId == cell.value {
+
+				// empty cell
+				value := fieldEmptyCellChar
+				if 1 == cell.captured {
+					value = fieldCapturedCellChar
+				}
+				fmt.Printf("%s ", value)
+
+			} else if fieldUserCellId == cell.value {
+
+				// User cell (blue *)
+				value := fieldUserCellChar
+				if cell.value != cell.belongsToPlayer {
+					value = fieldCapturedCellChar
+				}
+				fmt.Printf("%s%s%s ", CLR_B, value, CLR_N)
+
+			} else if fieldPCCellId == cell.value {
+
+				// PC cell (red +)
+
+				value := fieldPCCellChar
+				if cell.value != cell.belongsToPlayer {
+					value = fieldCapturedCellChar
+				}
+				fmt.Printf("%s%s%s ", CLR_R, value, CLR_N)
 			}
 		}
 		fmt.Println("")
@@ -204,12 +226,27 @@ func doUserStep(gameBoard [][]GameBoardNode) {
  */
 func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result int) {
 
-	if fieldEmptyCellId == gameBoard[x][y].value {
+	// can't do step, if
+	// * non empty cell
+	// * cell already captured
+	var nonEmptyCell bool = false
+	var capturedCell bool = false
+
+	if fieldEmptyCellId != gameBoard[x][y].value {
+		nonEmptyCell = true
+	}
+	if 1 == gameBoard[x][y].captured {
+		capturedCell = true
+	}
+
+	//fmt.Printf("Step to : %d %d. nonEmpty(%t), Captured(%t)\n", x, y, nonEmptyCell, capturedCell)
+
+	if nonEmptyCell || capturedCell {
+		result = 1
+	} else {
 		gameBoard[x][y].value 			= symbol
 		gameBoard[x][y].belongsToPlayer = symbol
 		result = 0
-	} else {
-		result = 1
 	}
 
 	// increase global variable - step number
@@ -224,6 +261,8 @@ func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result i
 
 func doAIStep(gameBoard [][]GameBoardNode) {
 	d("do AI step")
+
+	rand.Seed(time.Now().UTC().UnixNano())
 
 	var stepIsDone = 0
 	for 1 != stepIsDone {
@@ -313,11 +352,11 @@ func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
  */
 func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 
-	fmt.Printf("D: Calculate score per user\n");
+	fmt.Printf("D: Calculate score per player: %d\n", player.stepId);
 	var lastBoardIndex int = len(gameBoard) -1
 	// go over the gameBoard edge and paint over every cell
 
-	fmt.Printf("D: index: %d\n", lastBoardIndex);
+	//fmt.Printf("D: index: %d\n", lastBoardIndex);
 
 	// iterate over all rows
 	for index, _ := range gameBoard {
@@ -334,21 +373,44 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 			paintOutACell(gameBoard, index, 0, 				player)
 			paintOutACell(gameBoard, index, lastBoardIndex, player)
 		}
-    }
+	}
 
 	debug_print_gameBoard(gameBoard);
 
 	//pause();
 
     //time.Sleep(2 * time.Second)
-    //fmt.Println(gameBoard)
 
 	// not painted cells may contain captured cells
+	// reset painting because of calculating score for other player on same step
 	for i, row := range gameBoard {
 		for j, cell := range row {
 
-			// if already painted out, return
-			if 0 != cell.paintedId && stepNumber == cell.paintedOnStep {
+			// return, if
+			// * painted
+			// * value - current player
+			// * value - empty cell
+			alreadyPainted := false
+			currentPlayersCell := false
+			emptyCell := false
+
+			if 0 != cell.paintedId {
+				alreadyPainted = true
+			}
+			if cell.value == player.stepId {
+				currentPlayersCell = true
+			}
+
+			if cell.value == fieldEmptyCellId {
+				emptyCell = true
+			}
+			
+
+			if ! alreadyPainted && emptyCell {
+				gameBoard[i][j].captured = 1
+			}
+
+			if alreadyPainted || currentPlayersCell || emptyCell {
 				continue
 			} else {
 
@@ -358,9 +420,9 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 				if player.stepId == cell.belongsToPlayer {
 					continue
 				} else {
-					fmt.Println("captyre item ", i, j);
-					cell.belongsToPlayer = player.stepId
+					fmt.Printf("Capture cell %d %d\n\n", i, j);
 					gameBoard[i][j].belongsToPlayer = player.stepId
+					gameBoard[i][j].captured = 1
 					player.score += 1
 				}
 
@@ -369,19 +431,28 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 		}
 	}
 
+	// reset painting, because of another player
+	for i, _ := range gameBoard {
+		for j, _ := range gameBoard[i] {
+		
+			//fmt.Printf("clean %d %d, ", i, j);
+			gameBoard[i][j].paintedId = fieldEmptyCellId
+		}
+	}
 
-	time.Sleep(2*time.Second);
+	fmt.Printf("----- after calculating -----------\n");
+	debug_print_gameBoard(gameBoard);
 
 }
 
 func debug_print_gameBoard(gameBoard [][]GameBoardNode) {
 	// print all field in readable format
 
-	fmt.Printf("val,pla,painId,paintS\n");
+	fmt.Printf("val,pla,painId,paintS,Capt\n");
 
 	for _, row := range gameBoard {
 		for _, cell := range row {
-			fmt.Printf("%d,%d,%d,%-5d ", cell.value, cell.belongsToPlayer, cell.paintedId, cell.paintedOnStep);
+			fmt.Printf("%d,%d,%d,%d,%-5d ", cell.value, cell.belongsToPlayer, cell.paintedId, cell.paintedOnStep, cell.captured);
 		}
 		fmt.Println();
 	}
@@ -395,7 +466,7 @@ func debug_print_gameBoard(gameBoard [][]GameBoardNode) {
 func calculateGameScore(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) {
 
 	calculateScorePerPlayer(gameBoard, player1)
-	//calculateScorePerPlayer(gameBoard, player2)
+	calculateScorePerPlayer(gameBoard, player2)
 
 }
 
