@@ -16,7 +16,7 @@ import (
 )
 
 // ---------------------------------- CONSTS -------------------------------- //
-const gameBoardSize			int = 10
+const gameBoardSize			int = 8
 
 const fieldEmptyCellChar	string = "."
 const fieldUserCellChar		string = "*"
@@ -38,12 +38,15 @@ const CLR_N = "\x1b[0m"			// reset color
 
 const chars  string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+"
 
+// global variable. A number of step (any player)
 var stepNumber int = 0;
 
 // ------------------------------ STRUCTS ----------------------------------- //
 type GameBoardNode struct {
 	value			int;		// 0, 1, 2 (Empty, User, PC)
 	belongsToPlayer int;		// @id of player, who owns or captured this cell
+	paintedId		int;		// @id of player, who paintOut this cell
+	paintedOnStep	int;		// on the game's step @paintedOnStep
 }
 
 type Player struct {
@@ -104,6 +107,7 @@ func clear_screen_linux() {
 func drawGameBoard(gameBoard [][]GameBoardNode, userPlayer *Player, pcPlayer *Player) {
 
 	var length int = len(gameBoard)
+	// TOOD: use @length everywhere
 
 	fmt.Printf("    ")
 	for i := 0; i < length; i++ {
@@ -193,6 +197,10 @@ func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result i
 		result = 1
 	}
 
+	// increase global variable - step number
+	// (needed for calculate score functiin)
+	stepNumber++
+
 	return
 }
 
@@ -207,7 +215,7 @@ func doAIStep(gameBoard [][]GameBoardNode) {
 		// suppose that field is square/rectangle
 		var x int = rand.Intn(gameBoardSize)
 		var y int = rand.Intn(gameBoardSize)
-		fmt.Printf("values: x: %d, y: %d\n", x, y)
+		//fmt.Printf("values: x: %d, y: %d\n", x, y)
 
 		res := doGameStep(gameBoard, x, y, fieldPCCellId)
 		if 0 != res {
@@ -239,60 +247,104 @@ func printWinner(winnerNumber int) {
 /* ------------------------------------------------------------------------- */
 
 /*
- * Calculate score for one player
+ * name: paintOutACell
+ * desc: Paint a cell on current stepNumber, if it:
+ * * in gameBoard range
+ * * doesn't have current user dot yet
+ * * didnn't paint out yet
+ * @param
+ * 		@gameBoard -- game board
+ * 		@i, @j -- index of a cell
+ * 		@player -- player, fow whome we count a score (who did a step)
+ * @return
  *
+ */
+func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
+
+	//fmt.Printf("[%d,%d]:%d > %d <\n", i, j, stepNumber, gameBoard[i][j].value)
+
+	var lastBoardIndex int = len(gameBoard) -1
+
+	// if indexes out of a gameBoard, return
+	if i < 0 || j < 0 || i > lastBoardIndex || j > lastBoardIndex {
+		return
+	}
+
+	// if already painted out, return
+	if 0 != gameBoard[i][j].paintedId && stepNumber == gameBoard[i][j].paintedOnStep {
+		return
+	}
+
+	// if this cell containts a current player's dot, return
+	if player.stepId == gameBoard[i][j].value {
+		return
+	}
+
+	// paint Out this cell
+	gameBoard[i][j].paintedId 		= player.stepId
+	gameBoard[i][j].paintedOnStep 	= stepNumber
+
+	// paint out neighboards
+	paintOutACell(gameBoard, i-1,	j,	player)
+	paintOutACell(gameBoard, i+1,	j,	player)
+	paintOutACell(gameBoard, i,		j-1,player)
+	paintOutACell(gameBoard, i,		j+1,player)
+}
+
+/* ------------------------------------------------------------------------- */
+
+/*
+ * Calculate score for one player
  */
 func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 
-
-	//цикл для всех ячеек по контуру игрового поля
-	//{
-		// закраситьЯчеку(i, j, stepCount)
+	var lastBoardIndex int = len(gameBoard) -1
+	// go over the gameBoard edge and paint over every cell
 
 
-		//funct закраситьЯчеку(i, j, stepCount){
-			// stepCount - номер хода
-			// stepId - значение ячейки,
-			//          соответствующее о принадлежности конкретному пользователю
+	// iterate over all rows
+	for index, _ := range gameBoard {
 
+		// take first and last row completely
+		if index == 0 || index == lastBoardIndex {
 
-			//если выходим за границы или
-				 //закрашено на текущем шаге или
-				 //тут точка текущегоИгрока
-				//возврат
+			for j, _ := range gameBoard {
+				paintOutACell(gameBoard, index, j, player)
+			}
 
-			//иначе
-				//устанавливаем бит закраски ячейки на шаге @stepCount
-				//вызываем функцию закраски для всех соседей
-					//слева,
-					//справа,
-					//сверху
-					//снизу
-		//}
-	//}
+		} else {
+			// paint first and last element of row
+			paintOutACell(gameBoard, index, 0, 				player)
+			paintOutACell(gameBoard, index, lastBoardIndex, player)
+		}
+    }
 
-	// оставшиеся незакрашенные ячейки - это внутренности контуров,
-	// которые требуется *захватить* текущему пользователю
-	/*
-	цикл по всем ячейкам поля {
+    //time.Sleep(2 * time.Second)
+    fmt.Println(gameBoard)
 
-		если текущая ячейка ЗАКРАШЕНА -
-			возврат
-		иначе
-			захватить ячейку [i][j]
+	// not painted cells may contain captured cells
+	for _, row := range gameBoard {
+		for _, cell := range row {
 
+			// if already painted out, return
+			if 0 != cell.paintedId && stepNumber == cell.paintedOnStep {
+				return
+			} else {
 
-		// фнкция захвата_ячейки() //
+				// capture this cell
 
-		если ячейка принадлежит игроку @текущему
-			возврат
-		иначе
-			сменить принадлежность ячейки на текущего игрока
-			увеличить счёт текущего игрока (+1)
+				// if it is already this player's cell - do nothing
+				if player.stepId == cell.belongsToPlayer {
+					return
+				} else {
+					cell.belongsToPlayer = player.stepId
+					player.score += 1
+				}
 
+			}
+
+		}
 	}
-
-	*/
 
 
 
