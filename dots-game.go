@@ -11,6 +11,8 @@ import (
 	"time"
 	"os"
 	"os/exec"
+	"os/signal"
+	"syscall"
 	"bufio"
 	"strconv"
 	"strings"
@@ -63,7 +65,7 @@ type Player struct {
 func d (debugMsg string) {
 	fmt.Printf("D: ")
 	fmt.Println(debugMsg)
-	time.Sleep(400 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 }
 
 /* ------------------------------------------------------------------------- */
@@ -98,7 +100,7 @@ func initGameBoard(size int) (gameBoard [][]GameBoardNode) {
 
 func pause() {
 	for {
-		
+
 	}
 }
 
@@ -352,7 +354,7 @@ func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
  */
 func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 
-	fmt.Printf("D: Calculate score per player: %d\n", player.stepId);
+	//fmt.Printf("D: Calculate score per player: %d\n", player.stepId);
 	var lastBoardIndex int = len(gameBoard) -1
 	// go over the gameBoard edge and paint over every cell
 
@@ -375,7 +377,7 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 		}
 	}
 
-	debug_print_gameBoard(gameBoard);
+	//debug_print_gameBoard(gameBoard);
 
 	//pause();
 
@@ -404,7 +406,7 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 			if cell.value == fieldEmptyCellId {
 				emptyCell = true
 			}
-			
+
 
 			if ! alreadyPainted && emptyCell {
 				gameBoard[i][j].captured = 1
@@ -434,14 +436,14 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 	// reset painting, because of another player
 	for i, _ := range gameBoard {
 		for j, _ := range gameBoard[i] {
-		
+
 			//fmt.Printf("clean %d %d, ", i, j);
 			gameBoard[i][j].paintedId = fieldEmptyCellId
 		}
 	}
 
-	fmt.Printf("----- after calculating -----------\n");
-	debug_print_gameBoard(gameBoard);
+	//fmt.Printf("----- after calculating -----------\n");
+	//debug_print_gameBoard(gameBoard);
 
 }
 
@@ -493,6 +495,27 @@ func getWinner(gameBoard [][]GameBoardNode) (winner int) {
 /* ========================================================================= */
 
 func main() {
+
+	// catch ^C signal
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel,
+			syscall.SIGHUP,
+			syscall.SIGINT,
+			syscall.SIGTERM)
+	go func() {
+		sig := <-signalChannel
+        switch sig {
+        case os.Interrupt:
+            //handle SIGINT
+			fmt.Printf("\nOkay, bye bye, Looser!\n")
+			os.Exit(0)
+        case syscall.SIGTERM:
+            //handle SIGTERM
+        }
+	}()
+
+
+	// Start game
 	fmt.Println("\n\t = = = Greeting in 'Dots' game = = =\n");
 
 	//time.Sleep(2 * time.Second)
@@ -505,13 +528,13 @@ func main() {
 	var isWin int = 0
 	for /* empty */; isWin == 0; /* empty */ {
 
-		//clear_screen_linux()
+		clear_screen_linux()
 		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 
 		doUserStep(mainGameBoard);
 		calculateGameScore(mainGameBoard, &userPlayer, &pcPlayer)
 
-		//clear_screen_linux()
+		clear_screen_linux()
 		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 		isWin = getWinner(mainGameBoard);
 		if 0 != isWin {
@@ -522,12 +545,12 @@ func main() {
 		calculateGameScore(mainGameBoard, &userPlayer, &pcPlayer)
 
 		//clear_screen_linux()
-		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
+		//drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 		isWin = getWinner(mainGameBoard);
 		if 0 != isWin {
 			break;
 		}
-		d("-----------------------------------------")
+		//d("-----------------------------------------")
 	}
 
 	printWinner(isWin);
