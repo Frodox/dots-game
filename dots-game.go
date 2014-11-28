@@ -20,7 +20,7 @@ import (
 )
 
 // ---------------------------------- CONSTS -------------------------------- //
-const gameBoardSize			int = 8
+const gameBoardSize			int = 4
 
 const fieldEmptyCellChar	string = "."
 const fieldUserCellChar		string = "*"
@@ -297,7 +297,7 @@ func doAIStep(gameBoard [][]GameBoardNode) {
  *
  */
 func printWinner(winnerNumber int) {
-	d("we have winner")
+	fmt.Printf("Player %d wins!\n", winnerNumber)
 }
 
 /* ------------------------------------------------------------------------- */
@@ -331,8 +331,8 @@ func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
 		return
 	}
 
-	// if this cell containts a current player's dot, return
-	if player.stepId == gameBoard[i][j].value {
+	// if this cell containts a current player's dot and didn't captured, return
+	if player.stepId == gameBoard[i][j].value && gameBoard[i][j].captured == 0 {
 		return
 	}
 
@@ -476,19 +476,42 @@ func calculateGameScore(gameBoard [][]GameBoardNode, player1 *Player, player2 *P
 
 /*
  * Detect, if there any winner on game board
+ * @ return
+ * 		0: winner does not exist yet
+ * 		1: first User
+ * 		2: second user
+ * 		3: Toe
  */
-func getWinner(gameBoard [][]GameBoardNode) (winner int) {
+func getWinner(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) (winner int) {
 	d("get winner")
 
-	/* if emptyCellExist()
-	 * 		return (no winner)
-	 * else
-	 * 		return (scoreUser > scorePC) ? userWin : pcWin;
-	 *
-	 * */
+	hasEmpty := false
+	for _, row := range gameBoard {
+		for _, cell := range row {
+			if fieldEmptyCellId == cell.value {
+				hasEmpty = true
+				break
+			}
+		}
+
+		//fmt.Printf("hasEmpty (%t)\n", hasEmpty)
+
+		if hasEmpty {
+			break
+		}
+	}
+
+	if hasEmpty {
+		winner = 0
+	} else if player1.score > player2.score {
+		winner = 1
+	} else if player1.score < player2.score {
+		winner = 2
+	} else {
+		winner = 3
+	}
 
 
-	winner = 0
 	return
 }
 
@@ -536,7 +559,7 @@ func main() {
 
 		clear_screen_linux()
 		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
-		isWin = getWinner(mainGameBoard);
+		isWin = getWinner(mainGameBoard, &userPlayer, &pcPlayer);
 		if 0 != isWin {
 			break
 		}
@@ -546,12 +569,14 @@ func main() {
 
 		//clear_screen_linux()
 		//drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
-		isWin = getWinner(mainGameBoard);
+		isWin = getWinner(mainGameBoard, &userPlayer, &pcPlayer);
 		if 0 != isWin {
 			break;
 		}
 		//d("-----------------------------------------")
 	}
 
+	clear_screen_linux()
+	drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 	printWinner(isWin);
 }
