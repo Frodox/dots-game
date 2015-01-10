@@ -19,8 +19,8 @@ import (
 	"math/rand"
 )
 
-// ---------------------------------- CONSTS -------------------------------- //
-const gameBoardSize			int = 4
+// --------------------------------- CONSTS -------------------------------- //
+const gameBoardSize			int = 3
 
 const fieldEmptyCellChar	string = "."
 const fieldUserCellChar		string = "*"
@@ -46,7 +46,7 @@ const chars  string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ12345
 // global variable. A number of step (any player)
 var stepNumber int = 0;
 
-// ------------------------------ STRUCTS ----------------------------------- //
+// ----------------------------- STRUCTS ----------------------------------- //
 type GameBoardNode struct {
 	value			int;		// 0, 1, 2 (Empty, User, PC)
 	belongsToPlayer int;		// @id of player, who owns or captured this cell
@@ -61,7 +61,7 @@ type Player struct {
 }
 
 
-// ------------------------------ FUNCTIONS --------------------------------- //
+// ----------------------------- FUNCTIONS --------------------------------- //
 func d (debugMsg string) {
 	fmt.Printf("D: ")
 	fmt.Println(debugMsg)
@@ -78,31 +78,37 @@ func initGameBoard(size int) (gameBoard [][]GameBoardNode) {
 	// Allocate one large slice to hold all the pixels.
 	pixels := make([]GameBoardNode, size*size)
 
-	// Loop over the rows, slicing each row from the front of the remaining pixels slice.
+	// Loop over the rows,
+	// slicing each row from the front of the remaining pixels slice.
 	for i := range gameBoard {
 		gameBoard[i], pixels = pixels[:size], pixels[size:]
 	}
 
-	//gameBoard[0][1].value = 1
-	//gameBoard[1][0].value = 1
-	//gameBoard[2][1].value = 1
-	//gameBoard[1][2].value = 1
+	/* a trap */
+	gameBoard[0][1].value = 1
+	gameBoard[1][0].value = 1
+	gameBoard[2][1].value = 1
+	gameBoard[1][2].value = 1
 	//gameBoard[1][1].value = 2
 
-	//gameBoard[0][1].belongsToPlayer = 1
-	//gameBoard[1][0].belongsToPlayer = 1
-	//gameBoard[2][1].belongsToPlayer = 1
-	//gameBoard[1][2].belongsToPlayer = 1
+	gameBoard[0][1].belongsToPlayer = 1
+	gameBoard[1][0].belongsToPlayer = 1
+	gameBoard[2][1].belongsToPlayer = 1
+	gameBoard[1][2].belongsToPlayer = 1
 	//gameBoard[1][1].belongsToPlayer = 2
+
+	/* free sace */
+	gameBoard[0][0].value, gameBoard[0][0].belongsToPlayer  = 1,1
+	gameBoard[2][0].value, gameBoard[2][0].belongsToPlayer  = 1,1
 
 	return
 }
 
-func pause() {
-	for {
+//func pause() {
+	//for {
 
-	}
-}
+	//}
+//}
 
 /* ------------------------------------------------------------------------- */
 
@@ -230,20 +236,29 @@ func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result i
 
 	// can't do step, if
 	// * non empty cell
-	// * cell already captured
 	var nonEmptyCell bool = false
-	var capturedCell bool = false
+
+	/* TODO: handle the situation:
+	 * allow to do step into just captured free space
+	 * deny to do step into captured free space with enemy dots.
+	 * NOW: allow to do step in all captured area,
+	 * because it is usefull "score" and traps.
+	 * Also shoud fic alghoritm of getWinner() -
+	 * is gameField have any free space yet (toe or not) */
+	// # * cell already captured
+	// # var capturedCell bool = false
 
 	if fieldEmptyCellId != gameBoard[x][y].value {
 		nonEmptyCell = true
 	}
-	if 1 == gameBoard[x][y].captured {
-		capturedCell = true
-	}
+	//if 1 == gameBoard[x][y].captured {
+		//capturedCell = true
+	//}
 
 	//fmt.Printf("Step to : %d %d. nonEmpty(%t), Captured(%t)\n", x, y, nonEmptyCell, capturedCell)
 
-	if nonEmptyCell || capturedCell {
+	//if nonEmptyCell || capturedCell {
+	if nonEmptyCell {
 		result = 1
 	} else {
 		gameBoard[x][y].value 			= symbol
@@ -252,7 +267,7 @@ func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result i
 	}
 
 	// increase global variable - step number
-	// (needed for calculate score functiin)
+	// (needed for calculateGameScore() function)
 	stepNumber++
 
 	return
@@ -271,7 +286,7 @@ func doAIStep(gameBoard [][]GameBoardNode) {
 		// suppose that field is square/rectangle
 		var x int = rand.Intn(gameBoardSize)
 		var y int = rand.Intn(gameBoardSize)
-		//fmt.Printf("values: x: %d, y: %d\n", x, y)
+		fmt.Printf("values: x: %d, y: %d\n", x, y)
 
 		res := doGameStep(gameBoard, x, y, fieldPCCellId)
 		if 0 != res {
@@ -288,16 +303,29 @@ func doAIStep(gameBoard [][]GameBoardNode) {
 /*
  * name: printWinner
  * @param
- * 		winnerNumber --- number of player, who win the game
+ * 		winnerNumber --- number of player, who wins the game
  * 		0: game is playing
- * 		1: first player
- * 		2: second player
+ * 		1: first player (User)
+ * 		2: second player(PC)
  * 		3: toe
  * @return
  *
  */
 func printWinner(winnerNumber int) {
-	fmt.Printf("Player %d wins!\n", winnerNumber)
+	playerName := "ERROR"
+
+	switch {
+	case 0 == winnerNumber:
+		playerName = "None of (game continue)"
+	case 1 == winnerNumber:
+		playerName = "User"
+	case 2 == winnerNumber:
+		playerName = "PC"
+	case 3 == winnerNumber:
+		playerName = "None of (TOE)"
+	}
+
+	fmt.Printf("%s player wins!\n", playerName)
 }
 
 /* ------------------------------------------------------------------------- */
@@ -447,6 +475,8 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 
 }
 
+/* ------------------------------------------------------------------------- */
+
 func debug_print_gameBoard(gameBoard [][]GameBoardNode) {
 	// print all field in readable format
 
@@ -485,6 +515,7 @@ func calculateGameScore(gameBoard [][]GameBoardNode, player1 *Player, player2 *P
 func getWinner(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) (winner int) {
 	d("get winner")
 
+	// does gameBoard have any free space yet ?
 	hasEmpty := false
 	for _, row := range gameBoard {
 		for _, cell := range row {
@@ -510,7 +541,6 @@ func getWinner(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) (w
 	} else {
 		winner = 3
 	}
-
 
 	return
 }
