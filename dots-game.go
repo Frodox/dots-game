@@ -247,28 +247,6 @@ func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result i
 
 /* ------------------------------------------------------------------------- */
 
-func doAIStep(gameBoard [][]GameBoardNode) {
-	d("do AI step")
-
-	rand.Seed(time.Now().UTC().UnixNano())
-
-	var stepIsDone = 0
-	for 1 != stepIsDone {
-		// suppose that field is square/rectangle
-		var x int = rand.Intn(gameBoardSize)
-		var y int = rand.Intn(gameBoardSize)
-		fmt.Printf("values: x: %d, y: %d\n", x, y)
-
-		res := doGameStep(gameBoard, x, y, fieldPCCellId)
-		if 0 != res {
-			continue
-		}
-
-		stepIsDone = 1
-	}
-
-}
-
 /* ------------------------------------------------------------------------- */
 
 /*
@@ -470,13 +448,12 @@ func calculateGameScore(gameBoard [][]GameBoardNode, player1 *Player, player2 *P
 
 	calculateScorePerPlayer(gameBoard, player1)
 	calculateScorePerPlayer(gameBoard, player2)
-
 }
 
 /* ------------------------------------------------------------------------- */
 
 /*
- * Detect, if there any winner on game board
+ * Detect, if there any winner on given game board
  * @ return
  * 		0: winner does not exist yet
  * 		1: first User
@@ -564,7 +541,7 @@ func main() {
 			break
 		}
 
-		doAIStep(mainGameBoard);
+		doAIStepRandom(mainGameBoard);
 		calculateGameScore(mainGameBoard, &userPlayer, &pcPlayer)
 
 		//clear_screen_linux()
@@ -628,10 +605,33 @@ func isCellAvailableForStep(gameBoard [][]GameBoardNode, x int, y int) (cellIsAv
 
 /* --------------------------------------------------------------------------- */
 
+func doAIStepRandom(gameBoard [][]GameBoardNode) {
+	d("do random AI step")
+
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	// loop untill do some step
+	for {
+		// suppose that field is square/rectangle
+		var x int = rand.Intn(gameBoardSize)
+		var y int = rand.Intn(gameBoardSize)
+		fmt.Printf("values: x: %d, y: %d\n", x, y)
+
+		res := doGameStep(gameBoard, x, y, fieldPCCellId)
+		if 0 != res {
+			continue
+		}
+
+		break
+	}
+}
+
 /*
 ## проектирование алгоритма Просчёта хода компьютера
 * уровень сложности - глубина просчёта
+*/
 
+/*
 Функция, совершающая ход на предоставленном поле
 за искусственный интеллект(комп)
 */
