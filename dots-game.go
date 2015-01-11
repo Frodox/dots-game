@@ -20,7 +20,7 @@ import (
 )
 
 // --------------------------------- CONSTS -------------------------------- //
-const gameBoardSize			int = 3
+const gameBoardSize			int = 4
 
 const fieldEmptyCellChar	string = "."
 const fieldUserCellChar		string = "*"
@@ -84,31 +84,25 @@ func initGameBoard(size int) (gameBoard [][]GameBoardNode) {
 		gameBoard[i], pixels = pixels[:size], pixels[size:]
 	}
 
-	/* a trap */
-	gameBoard[0][1].value = 1
-	gameBoard[1][0].value = 1
-	gameBoard[2][1].value = 1
-	gameBoard[1][2].value = 1
-	//gameBoard[1][1].value = 2
-
-	gameBoard[0][1].belongsToPlayer = 1
-	gameBoard[1][0].belongsToPlayer = 1
-	gameBoard[2][1].belongsToPlayer = 1
-	gameBoard[1][2].belongsToPlayer = 1
-	//gameBoard[1][1].belongsToPlayer = 2
-
-	/* free sace */
 	gameBoard[0][0].value, gameBoard[0][0].belongsToPlayer  = 1,1
+	gameBoard[0][1].value, gameBoard[0][1].belongsToPlayer  = 1,1
+	gameBoard[0][2].value, gameBoard[0][2].belongsToPlayer  = 1,1
+	gameBoard[1][0].value, gameBoard[1][0].belongsToPlayer  = 1,1
+	gameBoard[1][3].value, gameBoard[1][3].belongsToPlayer  = 1,1
 	gameBoard[2][0].value, gameBoard[2][0].belongsToPlayer  = 1,1
+	gameBoard[2][3].value, gameBoard[2][3].belongsToPlayer  = 1,1
+	gameBoard[3][0].value, gameBoard[3][0].belongsToPlayer  = 1,1
+	gameBoard[3][1].value, gameBoard[3][1].belongsToPlayer  = 1,1
+	gameBoard[3][2].value, gameBoard[3][2].belongsToPlayer  = 1,1
 
 	return
 }
 
-//func pause() {
-	//for {
+func pause() {
+	for {
 
-	//}
-//}
+	}
+}
 
 /* ------------------------------------------------------------------------- */
 
@@ -234,33 +228,10 @@ func doUserStep(gameBoard [][]GameBoardNode) {
  */
 func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result int) {
 
-	// can't do step, if
-	// * non empty cell
-	var nonEmptyCell bool = false
+	result = 1
 
-	/* TODO: handle the situation:
-	 * allow to do step into just captured free space
-	 * deny to do step into captured free space with enemy dots.
-	 * NOW: allow to do step in all captured area,
-	 * because it is usefull "score" and traps.
-	 * Also shoud fic alghoritm of getWinner() -
-	 * is gameField have any free space yet (toe or not) */
-	// # * cell already captured
-	// # var capturedCell bool = false
-
-	if fieldEmptyCellId != gameBoard[x][y].value {
-		nonEmptyCell = true
-	}
-	//if 1 == gameBoard[x][y].captured {
-		//capturedCell = true
-	//}
-
-	//fmt.Printf("Step to : %d %d. nonEmpty(%t), Captured(%t)\n", x, y, nonEmptyCell, capturedCell)
-
-	//if nonEmptyCell || capturedCell {
-	if nonEmptyCell {
-		result = 1
-	} else {
+	canDoStep := isCellAvailableForStep(gameBoard, x, y);
+	if true == canDoStep {
 		gameBoard[x][y].value 			= symbol
 		gameBoard[x][y].belongsToPlayer = symbol
 		result = 0
@@ -515,24 +486,23 @@ func calculateGameScore(gameBoard [][]GameBoardNode, player1 *Player, player2 *P
 func getWinner(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) (winner int) {
 	d("get winner")
 
-	// does gameBoard have any free space yet ?
-	hasEmpty := false
-	for _, row := range gameBoard {
-		for _, cell := range row {
-			if fieldEmptyCellId == cell.value {
-				hasEmpty = true
-				break
+	// does gameBoard have any free space for step yet ?
+	cellForStepExists := false
+
+	FindFreeCell:
+	for i, _ := range gameBoard {
+		for j, _ := range gameBoard[i] {
+			if true == isCellAvailableForStep(gameBoard, i, j) {
+				cellForStepExists = true
+				fmt.Printf("BREAAAAAAK");
+				break FindFreeCell
+			} else {
+				fmt.Printf("[%d;%d] - busy\n", i, j);
 			}
-		}
-
-		//fmt.Printf("hasEmpty (%t)\n", hasEmpty)
-
-		if hasEmpty {
-			break
 		}
 	}
 
-	if hasEmpty {
+	if cellForStepExists {
 		winner = 0
 	} else if player1.score > player2.score {
 		winner = 1
@@ -613,40 +583,74 @@ func main() {
 
 /* ========================================================================= */
 
-Функция,. показывающая, может ли игрок "походить" в запрошенную ячейку
-на предоставленном игровом поле
+/* Determine, if given cell free for player step on given game board
+ * 
+ * name: isCellAvailableForStep
+ * @param
+ * 		gameBoard: game board on which look it
+ * 		x, y : cell's coords
+ * @return
+ * 		true:  yes
+ * 		false: no
+ */
+func isCellAvailableForStep(gameBoard [][]GameBoardNode, x int, y int) (cellIsAvailable bool) {
 
-Использование:
-* функция хода компа
-* функция определения победителя (естьли свободные в принципе)
+	cellIsAvailable = false
 
-func isCellAvailableForStep() {
-	//...
+	// can't do step, if
+	// * non empty cell
+	// * cell is inside captured area with enemy dots
+	/* TODO: handle the situation:
+	 * allow to do step into just captured free space
+	 * deny to do step into captured free space with enemy dots.
+	 * NOW: allow to do step in all captured area,
+	 * because it is usefull "score" and traps. */
+
+	var emptyCell bool = false
+	// var capturedCell bool = false
+
+	if fieldEmptyCellId == gameBoard[x][y].value {
+		emptyCell = true
+	}
+	//if 1 == gameBoard[x][y].captured {
+		//capturedCell = true
+	//}
+
+	//fmt.Printf("Step to : %d %d. nonEmpty(%t), Captured(%t)\n", x, y, nonEmptyCell, capturedCell)
+
+	//if emptyCell || ! capturedCell {
+	if emptyCell {
+		cellIsAvailable = true
+	}
+
+	return
 }
 
 /* --------------------------------------------------------------------------- */
 
+/*
 ## проектирование алгоритма Просчёта хода компьютера
 * уровень сложности - глубина просчёта
 
 Функция, совершающая ход на предоставленном поле
 за искусственный интеллект(комп)
-
+*/
+/*
 func doAIStep(игровое_поле, level int, максимум/минимум)
 {
 
-	/* TODO: в зависимости от игрока, ищем или максимум или минимум */
+	// TODO: в зависимости от игрока, ищем или максимум или минимум
 
 	клетка_для_хода = nill (какая-то случайная клетка, или ничего)
 	очки_клетки = -1000000
 	первое_новое_очко = -1000000
 	первый_ход = true
-
+*/
 	/* TODO: оптимизация скорости
 	 * определяем игровую область,
 	 * в которой будем проводить расчёты и прогнозирования
 	 * HINT: для маленького поля может не потребоваться */
-
+/*
 	for текущая_клетка in всё_игровое_поле (клетки, куда можно ходить)
 	{
 		doGameStep(поле2, текущая_клетка, за_ПК);
@@ -667,14 +671,17 @@ func doAIStep(игровое_поле, level int, максимум/миниму�
 	если
 		(клетка_для_хода == nill) || (очки_клетки == первое_новое_очко)<(ходы во все клетки - равнозначены)
 	{
-		/* определяем ход используя методы эвристики (на сайте алгоритм) */
+		// определяем ход используя методы эвристики (на сайте алгоритм)
 		клетка_для_хода = определить_ход_используй_эвристику(игровое_поле);
 	}
 
 	doGameStep(игровое_поле, клетка_для_хода, за_ПК);
 }
+*/
 
 /* --------------------------------------------------------------------------- */
+
+/*
 Функция определяет ситуацию (лучшую, или худшую. Зависит от того, для какого игрока вызываем)
 на игровом поле на определённой глубине просчёта.
 
@@ -704,8 +711,11 @@ func определить_ситуацию(поле2, глубина, max/min)
 
 	return лучшие_очки
 }
+*/
 
 /* --------------------------------------------------------------------------- */
+
+/*
 Функция вернёт 2 значения -
 * количество точек, захваченных первым игроком
 * количество точек, захваченных вторым игроком
@@ -718,28 +728,4 @@ func подсчитать_счёт_на_поле(поле3)
 
 	для первого  и второга игроков
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+*/
