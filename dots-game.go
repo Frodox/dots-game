@@ -1,6 +1,6 @@
 /*
- * Here description of my Dots game
- * Vit Ry <developer@bitthinker.com> (c) 2014
+ * Here is description of my Dots game
+ * Vit Ry <developer@bitthinker.com> (c) 2014-2015
  *
  * ts: 4
  */
@@ -85,6 +85,7 @@ func initGameBoard(size int) (gameBoard [][]GameBoardNode) {
 		gameBoard[i], pixels = pixels[:size], pixels[size:]
 	}
 
+	// debug
 	gameBoard[0][0].value, gameBoard[0][0].belongsToPlayer  = 1,1
 	gameBoard[0][1].value, gameBoard[0][1].belongsToPlayer  = 1,1
 	gameBoard[0][2].value, gameBoard[0][2].belongsToPlayer  = 1,1
@@ -99,6 +100,10 @@ func initGameBoard(size int) (gameBoard [][]GameBoardNode) {
 	return
 }
 
+/* -------------------------------------------------------------------------- */
+/*
+ * Permanent pause
+ */
 func pause() {
 	for {
 
@@ -107,6 +112,9 @@ func pause() {
 
 /* ------------------------------------------------------------------------- */
 
+/*
+ * Clear terminal screen in Unix (tested on linux and mac)
+ */
 func clear_screen_linux() {
 	cmd := exec.Command("clear") //Linux example, its tested
 	cmd.Stdout = os.Stdout
@@ -174,8 +182,6 @@ func drawGameBoard(gameBoard [][]GameBoardNode, userPlayer *Player, pcPlayer *Pl
 	fmt.Printf("User: %s%d%s\t\tPC: %s%d%s\n",
 			CLR_B, userPlayer.score, CLR_N,
 			CLR_R, pcPlayer.score,   CLR_N)
-
-	// TODO: если ячейка захвачена другим игроком -- сменить значок на '#'
 }
 
 /* ------------------------------------------------------------------------- */
@@ -223,6 +229,51 @@ func doUserStep(gameBoard [][]GameBoardNode) {
 
 /* ------------------------------------------------------------------------- */
 
+/* Determine, if given cell free for player step on given game board
+ * 
+ * name: isCellAvailableForStep
+ * @param
+ * 		gameBoard: game board on which look it
+ * 		x, y : cell's coords
+ * @return
+ * 		true:  yes
+ * 		false: no
+ */
+func isCellAvailableForStep(gameBoard [][]GameBoardNode, x int, y int) (cellIsAvailable bool) {
+
+	cellIsAvailable = false
+
+	// can't do step, if
+	// * non empty cell
+	// * cell is inside captured area with enemy dots
+	/* TODO: handle the situation:
+	 * allow to do step into just captured free space
+	 * deny to do step into captured free space with enemy dots.
+	 * NOW: allow to do step in all captured area,
+	 * because it is usefull "score" and traps. */
+
+	var emptyCell bool = false
+	// var capturedCell bool = false
+
+	if fieldEmptyCellId == gameBoard[x][y].value {
+		emptyCell = true
+	}
+	//if 1 == gameBoard[x][y].captured {
+		//capturedCell = true
+	//}
+
+	//fmt.Printf("Step to : %d %d. nonEmpty(%t), Captured(%t)\n", x, y, nonEmptyCell, capturedCell)
+
+	//if emptyCell || ! capturedCell {
+	if emptyCell {
+		cellIsAvailable = true
+	}
+
+	return
+}
+
+/* -------------------------------------------------------------------------- */
+
 /*
  * return 0 if fine
  * 	  1 if cell not empty already or error occured
@@ -244,7 +295,7 @@ func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result i
 /* -------------------------------------------------------------------------- */
 
 /*
- * Set default values on given game board in given cell
+ * Undo any step on given game board in given cell
  */
 func undoGameStep(gameBoard [][]GameBoardNode, x int, y int) {
 	gameBoard[x][y].value 			= fieldEmptyCellId
@@ -292,9 +343,9 @@ func printWinner(winnerNumber int) {
  * @param
  * 		@gameBoard -- game board
  * 		@i, @j -- index of a cell
- * 		@player -- player, for whome we count a score (who did a step)
+ * 		@playerStepID -- player step ID, for whome we count a score (who did a step)
  */
-func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
+func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, playerStepID int) {
 
 	//fmt.Printf("[%d,%d] > %d <\n", i, j, gameBoard[i][j].value)
 
@@ -311,18 +362,18 @@ func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
 	}
 
 	// if this cell containts a current player's dot and didn't captured, return
-	if player.stepId == gameBoard[i][j].value && gameBoard[i][j].captured == 0 {
+	if playerStepID == gameBoard[i][j].value && gameBoard[i][j].captured == 0 {
 		return
 	}
 
 	// paint Out this cell
-	gameBoard[i][j].paintedId 		= player.stepId
+	gameBoard[i][j].paintedId 		= playerStepID
 
 	// paint out neighboards
-	paintOutACell(gameBoard, i-1,	j,	player)
-	paintOutACell(gameBoard, i+1,	j,	player)
-	paintOutACell(gameBoard, i,		j-1,player)
-	paintOutACell(gameBoard, i,		j+1,player)
+	paintOutACell(gameBoard, i-1,	j,	playerStepID)
+	paintOutACell(gameBoard, i+1,	j,	playerStepID)
+	paintOutACell(gameBoard, i,		j-1,playerStepID)
+	paintOutACell(gameBoard, i,		j+1,playerStepID)
 }
 
 /* ------------------------------------------------------------------------- */
@@ -330,9 +381,9 @@ func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
 /*
  * Calculate score for one player
  */
-func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
+func calculateScorePerPlayer(gameBoard [][]GameBoardNode, playerStepID int) {
 
-	//fmt.Printf("D: Calculate score per player: %d\n", player.stepId);
+	//fmt.Printf("D: Calculate score per player: %d\n", playerStepID);
 	var lastCellIndex int = len(gameBoard) -1
 
 	// Go over the gameBoard edge and paint over every cell
@@ -343,12 +394,12 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 		// take first and last row completely
 		if index == 0 || index == lastCellIndex {
 			for j := range gameBoard[index] {
-				paintOutACell(gameBoard, index, j, player)
+				paintOutACell(gameBoard, index, j, playerStepID)
 			}
 		} else {
 			// paint first and last element of row
-			paintOutACell(gameBoard, index, 0,				player)
-			paintOutACell(gameBoard, index, lastCellIndex,	player)
+			paintOutACell(gameBoard, index, 0,				playerStepID)
+			paintOutACell(gameBoard, index, lastCellIndex,	playerStepID)
 		}
 	}
 
@@ -372,7 +423,7 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 			if cell.paintedId != fieldEmptyCellId {
 				alreadyPainted = true
 			}
-			if cell.value == player.stepId {
+			if cell.value == playerStepID {
 				currentPlayersCell = true
 			}
 			if cell.value == fieldEmptyCellId {
@@ -386,16 +437,15 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 			if alreadyPainted || currentPlayersCell || emptyCell {
 				continue
 			} else {
-				// capture this cell
+				// Capture this cell
 
 				// if it is already this player's cell - do nothing
-				if player.stepId == cell.belongsToPlayer {
+				if playerStepID == cell.belongsToPlayer {
 					continue
 				} else {
 					fmt.Printf("D: Capture enemy's cell [%d %c]\n\n", i, chars[j]);
-					gameBoard[i][j].belongsToPlayer = player.stepId
+					gameBoard[i][j].belongsToPlayer = playerStepID
 					gameBoard[i][j].captured = 1
-					player.score += 1
 				}
 
 			}
@@ -413,6 +463,27 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 
 	//fmt.Printf("----- after calculating -----------\n");
 	//debug_print_gameBoard(gameBoard);
+}
+
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Функция вернёт количество точек, захваченных игроком
+ */
+func getScorePerPlayer(gameBoard [][]GameBoardNode, playerStepID int) (score int) {
+
+	score = 0
+
+	for i, row := range gameBoard {
+		for j, cell := range row {
+			if cell.captured == 1 && cell.belongsToPlayer == playerStepID && cell.value != playerStepID {
+				//fmt.Printf("score++ for: [%d; %c]\n", i, chars[j]);
+				score++
+			}
+		}
+	}
+
+	return
 }
 
 /* ------------------------------------------------------------------------- */
@@ -437,8 +508,11 @@ func debug_print_gameBoard(gameBoard [][]GameBoardNode) {
  */
 func calculateScoreOnBoard(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) {
 
-	calculateScorePerPlayer(gameBoard, player1)
-	calculateScorePerPlayer(gameBoard, player2)
+	calculateScorePerPlayer(gameBoard, player1.stepId)
+	player1.score = getScorePerPlayer(gameBoard, player1.stepId);
+
+	calculateScorePerPlayer(gameBoard, player2.stepId)
+	player2.score = getScorePerPlayer(gameBoard, player2.stepId);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -548,51 +622,6 @@ func main() {
 }
 
 /* ========================================================================= */
-
-/* Determine, if given cell free for player step on given game board
- * 
- * name: isCellAvailableForStep
- * @param
- * 		gameBoard: game board on which look it
- * 		x, y : cell's coords
- * @return
- * 		true:  yes
- * 		false: no
- */
-func isCellAvailableForStep(gameBoard [][]GameBoardNode, x int, y int) (cellIsAvailable bool) {
-
-	cellIsAvailable = false
-
-	// can't do step, if
-	// * non empty cell
-	// * cell is inside captured area with enemy dots
-	/* TODO: handle the situation:
-	 * allow to do step into just captured free space
-	 * deny to do step into captured free space with enemy dots.
-	 * NOW: allow to do step in all captured area,
-	 * because it is usefull "score" and traps. */
-
-	var emptyCell bool = false
-	// var capturedCell bool = false
-
-	if fieldEmptyCellId == gameBoard[x][y].value {
-		emptyCell = true
-	}
-	//if 1 == gameBoard[x][y].captured {
-		//capturedCell = true
-	//}
-
-	//fmt.Printf("Step to : %d %d. nonEmpty(%t), Captured(%t)\n", x, y, nonEmptyCell, capturedCell)
-
-	//if emptyCell || ! capturedCell {
-	if emptyCell {
-		cellIsAvailable = true
-	}
-
-	return
-}
-
-/* --------------------------------------------------------------------------- */
 
 /* Do random AI step on given game board
  * 
@@ -778,19 +807,5 @@ func determinePossibleGameSituation(gameBoard [][]GameBoardNode, depth int, find
 
 /* --------------------------------------------------------------------------- */
 
-/*
- * Функция вернёт количество точек, захваченных игроком
- */
-func getScorePerPlayer(gameBoard [][]GameBoardNode, symbol int) (score int) {
 
-	/*
-	цикл с полсчётом разницы - кладеет и захвачена :
-	belongsToPlayer
-	paintedId
-	captured
-
-	для первого  и второга игроков
-	*/
-	return 0
-}
 
