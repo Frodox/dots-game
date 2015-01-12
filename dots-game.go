@@ -20,7 +20,7 @@ import (
 )
 
 // --------------------------------- CONSTS -------------------------------- //
-const gameBoardSize			int = 3
+const gameBoardSize			int = 9
 
 const fieldEmptyCellChar	string = "."
 const fieldUserCellChar		string = "*"
@@ -85,21 +85,21 @@ func initGameBoard(size int) (gameBoard [][]GameBoardNode) {
 	}
 
 	/* a trap */
-	gameBoard[0][1].value = 1
-	gameBoard[1][0].value = 1
-	gameBoard[2][1].value = 1
-	gameBoard[1][2].value = 1
+	//gameBoard[0][1].value = 1
+	//gameBoard[1][0].value = 1
+	//gameBoard[2][1].value = 1
+	//gameBoard[1][2].value = 1
 	//gameBoard[1][1].value = 2
 
-	gameBoard[0][1].belongsToPlayer = 1
-	gameBoard[1][0].belongsToPlayer = 1
-	gameBoard[2][1].belongsToPlayer = 1
-	gameBoard[1][2].belongsToPlayer = 1
+	//gameBoard[0][1].belongsToPlayer = 1
+	//gameBoard[1][0].belongsToPlayer = 1
+	//gameBoard[2][1].belongsToPlayer = 1
+	//gameBoard[1][2].belongsToPlayer = 1
 	//gameBoard[1][1].belongsToPlayer = 2
 
 	/* free sace */
-	gameBoard[0][0].value, gameBoard[0][0].belongsToPlayer  = 1,1
-	gameBoard[2][0].value, gameBoard[2][0].belongsToPlayer  = 1,1
+	//gameBoard[0][0].value, gameBoard[0][0].belongsToPlayer  = 1,1
+	//gameBoard[2][0].value, gameBoard[2][0].belongsToPlayer  = 1,1
 
 	return
 }
