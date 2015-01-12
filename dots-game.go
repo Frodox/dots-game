@@ -342,58 +342,51 @@ func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
 func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 
 	//fmt.Printf("D: Calculate score per player: %d\n", player.stepId);
-	var lastBoardIndex int = len(gameBoard) -1
-	// go over the gameBoard edge and paint over every cell
+	var lastCellIndex int = len(gameBoard) -1
 
-	//fmt.Printf("D: index: %d\n", lastBoardIndex);
+	// Go over the gameBoard edge and paint over every cell
 
-	// iterate over all rows
-	for index, _ := range gameBoard {
+	// loop over all rows
+	for index := range gameBoard {
 
 		// take first and last row completely
-		if index == 0 || index == lastBoardIndex {
-
-			for j, _ := range gameBoard {
+		if index == 0 || index == lastCellIndex {
+			for j := range gameBoard[index] {
 				paintOutACell(gameBoard, index, j, player)
 			}
-
 		} else {
 			// paint first and last element of row
-			paintOutACell(gameBoard, index, 0, 				player)
-			paintOutACell(gameBoard, index, lastBoardIndex, player)
+			paintOutACell(gameBoard, index, 0,				player)
+			paintOutACell(gameBoard, index, lastCellIndex,	player)
 		}
 	}
 
 	//debug_print_gameBoard(gameBoard);
-
 	//pause();
-
 	//time.Sleep(2 * time.Second)
 
-	// not painted cells may contain captured cells
-	// reset painting because of calculating score for other player on same step
-	for i, row := range gameBoard {
-		for j, cell := range row {
+	/* Not painted cells -- captured cells.
+	 * They may contain enemy's captured cells */
+	for i := range gameBoard {
+		for j, cell := range gameBoard[i] {
 
-			// return, if
-			// * painted
-			// * value - current player
-			// * value - empty cell
+			// do nothing with 'current' cell, if
+			// * it is painted
+			// * it has value of current player
+			// * is it empty
 			alreadyPainted := false
 			currentPlayersCell := false
 			emptyCell := false
 
-			if 0 != cell.paintedId {
+			if cell.paintedId != fieldEmptyCellId {
 				alreadyPainted = true
 			}
 			if cell.value == player.stepId {
 				currentPlayersCell = true
 			}
-
 			if cell.value == fieldEmptyCellId {
 				emptyCell = true
 			}
-
 
 			if ! alreadyPainted && emptyCell {
 				gameBoard[i][j].captured = 1
@@ -402,14 +395,13 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 			if alreadyPainted || currentPlayersCell || emptyCell {
 				continue
 			} else {
-
 				// capture this cell
 
 				// if it is already this player's cell - do nothing
 				if player.stepId == cell.belongsToPlayer {
 					continue
 				} else {
-					fmt.Printf("Capture cell %d %d\n\n", i, j);
+					fmt.Printf("D: Capture enemy's cell [%d %c]\n\n", i, chars[j]);
 					gameBoard[i][j].belongsToPlayer = player.stepId
 					gameBoard[i][j].captured = 1
 					player.score += 1
@@ -420,10 +412,9 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 		}
 	}
 
-	// reset painting, because of another player
-	for i, _ := range gameBoard {
-		for j, _ := range gameBoard[i] {
-
+	// Reset painting because of calculating score for other player on same step
+	for i := range gameBoard {
+		for j := range gameBoard[i] {
 			//fmt.Printf("clean %d %d, ", i, j);
 			gameBoard[i][j].paintedId = fieldEmptyCellId
 		}
@@ -431,7 +422,6 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 
 	//fmt.Printf("----- after calculating -----------\n");
 	//debug_print_gameBoard(gameBoard);
-
 }
 
 /* ------------------------------------------------------------------------- */
@@ -471,7 +461,7 @@ func calculateScoreOnBoard(gameBoard [][]GameBoardNode, player1 *Player, player2
  * 		3: Toe
  */
 func getWinner(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) (winner int) {
-	d("get winner")
+	d("f: get winner")
 
 	// does gameBoard have any free space for step yet ?
 	cellForStepExists := false
@@ -481,10 +471,7 @@ func getWinner(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) (w
 		for j, _ := range gameBoard[i] {
 			if true == isCellAvailableForStep(gameBoard, i, j) {
 				cellForStepExists = true
-				fmt.Printf("BREAAAAAAK");
 				break FindFreeCell
-			} else {
-				fmt.Printf("[%d;%d] - busy\n", i, j);
 			}
 		}
 	}
@@ -623,7 +610,7 @@ func isCellAvailableForStep(gameBoard [][]GameBoardNode, x int, y int) (cellIsAv
  * 		gameBoard : game board on which do AI step
  */
 func doAIStepRandom(gameBoard [][]GameBoardNode) {
-	d("do random AI step")
+	d("f: do random AI step")
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -632,7 +619,7 @@ func doAIStepRandom(gameBoard [][]GameBoardNode) {
 		// suppose that field is square/rectangle
 		var x int = rand.Intn(gameBoardSize)
 		var y int = rand.Intn(gameBoardSize)
-		fmt.Printf("values: x: %d, y: %d\n", x, y)
+		fmt.Printf("D: AI: try to do step in [%d; %c]\n", x, chars[y])
 
 		if 0 != doGameStep(gameBoard, x, y, fieldPCCellId) {
 			continue
