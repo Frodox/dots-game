@@ -60,6 +60,11 @@ type Player struct {
 	score 	int;		//  score of this player. 0 by default
 }
 
+type GameBoardCell struct {
+					//                                  ( | )
+	x	int;		// x coord from top left corner (i) ( v )
+	y	int;		// y coord from top left corner (j) (-->)
+}
 
 // ----------------------------- FUNCTIONS --------------------------------- //
 func d (debugMsg string) {
@@ -107,10 +112,10 @@ func pause() {
 /* ------------------------------------------------------------------------- */
 
 func clear_screen_linux() {
-        cmd := exec.Command("clear") //Linux example, its tested
-        cmd.Stdout = os.Stdout
-        cmd.Run()
-    }
+	cmd := exec.Command("clear") //Linux example, its tested
+	cmd.Stdout = os.Stdout
+	cmd.Run()
+}
 
 /* ------------------------------------------------------------------------- */
 
@@ -129,7 +134,7 @@ func drawGameBoard(gameBoard [][]GameBoardNode, userPlayer *Player, pcPlayer *Pl
 	var length int = len(gameBoard)
 	for i := 0; i < length; i++ {
 		fmt.Printf("%c ", chars[i])
-    }
+	}
 	fmt.Println()
 
 	for i, row := range gameBoard {
@@ -244,8 +249,15 @@ func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result i
 	return
 }
 
+/* -------------------------------------------------------------------------- */
 
-/* ------------------------------------------------------------------------- */
+/*
+ * Set default values on given game board in given cell
+ */
+func undoGameStep(gameBoard [][]GameBoardNode, x int, y int) {
+	gameBoard[x][y].value 			= fieldEmptyCellId
+	gameBoard[x][y].belongsToPlayer = fieldEmptyCellId
+}
 
 /* ------------------------------------------------------------------------- */
 
@@ -289,8 +301,6 @@ func printWinner(winnerNumber int) {
  * 		@gameBoard -- game board
  * 		@i, @j -- index of a cell
  * 		@player -- player, for whome we count a score (who did a step)
- * @return
- *
  */
 func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
 
@@ -358,7 +368,7 @@ func calculateScorePerPlayer(gameBoard [][]GameBoardNode, player *Player) {
 
 	//pause();
 
-    //time.Sleep(2 * time.Second)
+	//time.Sleep(2 * time.Second)
 
 	// not painted cells may contain captured cells
 	// reset painting because of calculating score for other player on same step
@@ -444,7 +454,7 @@ func debug_print_gameBoard(gameBoard [][]GameBoardNode) {
 /*
  * Calculate all game score for the game (for both players)
  */
-func calculateGameScore(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) {
+func calculateScoreOnBoard(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) {
 
 	calculateScorePerPlayer(gameBoard, player1)
 	calculateScorePerPlayer(gameBoard, player2)
@@ -496,7 +506,7 @@ func getWinner(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) (w
 
 func main() {
 
-	// catch ^C signal
+	// handle ^C signal
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel,
 			syscall.SIGHUP,
@@ -504,14 +514,14 @@ func main() {
 			syscall.SIGTERM)
 	go func() {
 		sig := <-signalChannel
-        switch sig {
-        case os.Interrupt:
-            //handle SIGINT
-			fmt.Printf("\nOkay, bye bye, Looser!\n")
+		switch sig {
+		case os.Interrupt:
+			//handle SIGINT
+			fmt.Printf("\nOkay, bye bye, Loser!\n")
 			os.Exit(0)
-        case syscall.SIGTERM:
-            //handle SIGTERM
-        }
+		case syscall.SIGTERM:
+			//handle SIGTERM
+		}
 	}()
 
 
@@ -532,7 +542,7 @@ func main() {
 		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 
 		doUserStep(mainGameBoard);
-		calculateGameScore(mainGameBoard, &userPlayer, &pcPlayer)
+		calculateScoreOnBoard(mainGameBoard, &userPlayer, &pcPlayer)
 
 		clear_screen_linux()
 		drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
@@ -542,7 +552,8 @@ func main() {
 		}
 
 		doAIStepRandom(mainGameBoard);
-		calculateGameScore(mainGameBoard, &userPlayer, &pcPlayer)
+		//doAIStep(mainGameBoard, 0);
+		calculateScoreOnBoard(mainGameBoard, &userPlayer, &pcPlayer)
 
 		//clear_screen_linux()
 		//drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
@@ -605,6 +616,12 @@ func isCellAvailableForStep(gameBoard [][]GameBoardNode, x int, y int) (cellIsAv
 
 /* --------------------------------------------------------------------------- */
 
+/* Do random AI step on given game board
+ * 
+ * name: doAIStepRandom
+ * @param
+ * 		gameBoard : game board on which do AI step
+ */
 func doAIStepRandom(gameBoard [][]GameBoardNode) {
 	d("do random AI step")
 
@@ -617,8 +634,7 @@ func doAIStepRandom(gameBoard [][]GameBoardNode) {
 		var y int = rand.Intn(gameBoardSize)
 		fmt.Printf("values: x: %d, y: %d\n", x, y)
 
-		res := doGameStep(gameBoard, x, y, fieldPCCellId)
-		if 0 != res {
+		if 0 != doGameStep(gameBoard, x, y, fieldPCCellId) {
 			continue
 		}
 
@@ -626,58 +642,96 @@ func doAIStepRandom(gameBoard [][]GameBoardNode) {
 	}
 }
 
-/*
-## проектирование алгоритма Просчёта хода компьютера
-* уровень сложности - глубина просчёта
-*/
+/* -------------------------------------------------------------------------- */
 
-/*
-Функция, совершающая ход на предоставленном поле
-за искусственный интеллект(комп)
-*/
-/*
-func doAIStep(игровое_поле, level int, максимум/минимум)
-{
+/* Do AI step on given game board with pre-calculating on given game depth
+ * 
+ * name: doAIStep
+ * @param
+ * 		gameBoard : game board on which do AI step
+ * 		depth     : depth of pre-calculating (aka level of difficulty)
+ *                  bigger depth -> smarter AI
+ */
+func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 
-	// TODO: в зависимости от игрока, ищем или максимум или минимум
+	cellToDoStepX := -1
+	cellToDoStepY := -1
+	cellToDoStepScore := -1000000		// default score (unreal game score)
+	//firstNewScore := cellToDoStepScore
+	//firstStep := true
 
-	клетка_для_хода = nill (какая-то случайная клетка, или ничего)
-	очки_клетки = -1000000
-	первое_новое_очко = -1000000
-	первый_ход = true
-*/
 	/* TODO: оптимизация скорости
 	 * определяем игровую область,
 	 * в которой будем проводить расчёты и прогнозирования
 	 * HINT: для маленького поля может не потребоваться */
-/*
-	for текущая_клетка in всё_игровое_поле (клетки, куда можно ходить)
-	{
-		doGameStep(поле2, текущая_клетка, за_ПК);
-		tmp_score = определить_ситуацию(поле2, глубина);
 
-		если tmp_score > очки_клетки
-		{
-			клетка_для_хода = текущая_клетка
-			очки_клетки = tmp_score
-			если первый_ход
-			{
-				первое_новое_очко = очки_клетки
-				первый_ход = false
+	// loop over free for step cells
+	for i := range gameBoard {
+		for j := range gameBoard[i] {
+			if true == isCellAvailableForStep(gameBoard, i, j) {
+
+				// create a dublicate of game board, operate with it next
+				gameBoardDuplicate := getGameBoardCopy(gameBoard);
+
+				// do steps on fake game board and
+				// look what'll happen on some depth
+				doGameStep(gameBoardDuplicate, i, j, fieldPCCellId);
+				tmp_score := determinePossibleGameSituation(gameBoardDuplicate, depth, true);
+
+				if tmp_score > cellToDoStepScore {
+					cellToDoStepX = i
+					cellToDoStepY = j
+					cellToDoStepScore = tmp_score
+					//if firstStep {
+						//firstNewScore = cellToDoStepScore
+						//firstStep = false
+					//}
+				}
+
+				undoGameStep(gameBoardDuplicate, i, j);
 			}
 		}
 	}
 
-	если
-		(клетка_для_хода == nill) || (очки_клетки == первое_новое_очко)<(ходы во все клетки - равнозначены)
-	{
-		// определяем ход используя методы эвристики (на сайте алгоритм)
-		клетка_для_хода = определить_ход_используй_эвристику(игровое_поле);
+	/* TODO: If "best" cell does not exist
+	 * or all cells are "same":
+	 * determine step by heuristic (see web article) */
+	/* for simpleness : use random now */
+	//if -1 == cellToDoStepX || cellToDoStepScore == firstNewScore {
+		////cellToDoStepX, cellToDoStepY = determinePCStepByHeuristic(gameBoard);
+		//fmt.Printf("All cells are same on given depth. No matter what to do");
+		//doAIStepRandom(gameBoard);
+	//} else {
+		//// do step on real game board
+		//doGameStep(gameBoard, cellToDoStepX, cellToDoStepY, fieldPCCellId);
+	//}
+	doGameStep(gameBoard, cellToDoStepX, cellToDoStepY, fieldPCCellId);
+}
+
+/* -------------------------------------------------------------------------- */
+
+/* Return a dublicate of given game board
+ * 
+ * @param
+ * 		gameBoard : game board to copy
+ * @return
+ * 		duplicate of game board (of nil, if passed so)
+ */
+func getGameBoardCopy (gameBoard [][]GameBoardNode) (duplicate [][]GameBoardNode) {
+
+	if gameBoard == nil {
+		return nil
 	}
 
-	doGameStep(игровое_поле, клетка_для_хода, за_ПК);
+	duplicate = make([][]GameBoardNode, len(gameBoard))
+	for i := range gameBoard {
+		duplicate[i] = make([]GameBoardNode, len(gameBoard[i]))
+		copy(duplicate[i], gameBoard[i])
+	}
+
+	debug_print_gameBoard(duplicate);
+	return
 }
-*/
 
 /* --------------------------------------------------------------------------- */
 
@@ -685,47 +739,80 @@ func doAIStep(игровое_поле, level int, максимум/миниму�
 Функция определяет ситуацию (лучшую, или худшую. Зависит от того, для какого игрока вызываем)
 на игровом поле на определённой глубине просчёта.
 
-max/min - true/false
+Ходим во все ячейки на заданную глубину и смотрим,
+какой будет "счёт".
+Определяем лучший счёт по всем ходам (что вообще может быть на заданную глубину)
+и его возвращаем.
+
+max/min - true/false - bestForPC/not
 and xor it to change
-
-func определить_ситуацию(поле2, глубина, max/min)
-{
-	лучшие_очки = -10000
-
-	for текущая_клетка in всё_игровое_поле2 (клетки, куда можно ходить) // предусмотреть что конец поля (некуда ходить)
-	{
-		doGameStep(поле3, текущая_клетка, за_игрока(max/min));
-		tmp_score = определить_ситуацию(поле3, глубина-1, xor(max/min));
-
-		если tmp_score > лучшие_очки // тут добавить max/min
-		{
-			лучшие_очки = tmp_score
-		}
-	}
-
-	если глубина = 0 или конец_поля
-	{
-		подсчитать_счёт_на_поле(поле3)
-		лучшие_очки  = счёт_игрока1 - счёт_игрока2
-	}
-
-	return лучшие_очки
-}
 */
+func determinePossibleGameSituation(gameBoard [][]GameBoardNode, depth int, findBestForPC bool) (gameSituation int) {
+
+	// TODO: в зависимости от игрока (findBestForPC), ищем или максимум или минимум
+	gameSituation = -10000 // maybe set it as current situation
+
+	// TODO: конец игрового поля, походили во все клетки уже - возвращаем текущий "счёт"
+	if 0 != depth {
+
+		// loop over free for step cells
+		for i := range gameBoard {
+			for j := range gameBoard[i] {
+				if true == isCellAvailableForStep(gameBoard, i, j) {
+
+					switch {
+					case findBestForPC == true :
+						// on this step we look best situation for PC,
+						// so on top level we'vev alredy done PC step
+						doGameStep(gameBoard, i, j, fieldUserCellId);
+					case findBestForPC == false :
+						doGameStep(gameBoard, i, j, fieldPCCellId);
+					}
+					/*
+					tmp_score := determinePossibleGameSituation(gameBoard, depth-1, ! findBestForPC);
+
+					если tmp_score > лучшие_очки // тут добавить max/min
+					{
+						bestScore = tmp_score
+					}
+					* switch */
+
+					undoGameStep(gameBoard, i, j);
+				}
+			}
+		}
+
+	}
+
+
+	//calculateScoreOnBoard(gameBoard) // TODO: remove global variables (stepNumber)
+	pcPlayerScore   := getScorePerPlayer(gameBoard, fieldPCCellId);
+	userPlayerScore := getScorePerPlayer(gameBoard, fieldUserCellId);
+	if findBestForPC {
+		gameSituation = pcPlayerScore - userPlayerScore
+	} else {
+		gameSituation = userPlayerScore - pcPlayerScore
+	}
+
+	return
+}
+
 
 /* --------------------------------------------------------------------------- */
 
 /*
-Функция вернёт 2 значения -
-* количество точек, захваченных первым игроком
-* количество точек, захваченных вторым игроком
-func подсчитать_счёт_на_поле(поле3)
-{
+ * Функция вернёт количество точек, захваченных игроком
+ */
+func getScorePerPlayer(gameBoard [][]GameBoardNode, symbol int) (score int) {
+
+	/*
 	цикл с полсчётом разницы - кладеет и захвачена :
 	belongsToPlayer
 	paintedId
 	captured
 
 	для первого  и второга игроков
+	*/
+	return 0
 }
-*/
+
