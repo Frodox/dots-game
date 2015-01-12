@@ -43,15 +43,11 @@ const CLR_N = "\x1b[0m"			// reset color
 
 const chars  string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+"
 
-// global variable. A number of step (any player)
-var stepNumber int = 0;
-
 // ----------------------------- STRUCTS ----------------------------------- //
 type GameBoardNode struct {
 	value			int;		// 0, 1, 2 (Empty, User, PC)
 	belongsToPlayer int;		// @id of player, who owns the cell (by drawing this dot, or by capturing it)
 	paintedId		int;		// @id of player, who paintOut this cell
-	paintedOnStep	int;		// on the game's step @paintedOnStep
 	captured		int;		// (0|1) - if this cell was captured by any player
 }
 
@@ -242,10 +238,6 @@ func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result i
 		result = 0
 	}
 
-	// increase global variable - step number
-	// (needed for calculateGameScore() function)
-	stepNumber++
-
 	return
 }
 
@@ -293,7 +285,7 @@ func printWinner(winnerNumber int) {
 
 /*
  * name: paintOutACell
- * desc: Paint a cell on current stepNumber, if it:
+ * desc: Paint a cell, if it:
  * * in gameBoard range
  * * doesn't have current user dot yet
  * * didn't paint out yet
@@ -304,17 +296,17 @@ func printWinner(winnerNumber int) {
  */
 func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
 
-	//fmt.Printf("[%d,%d]:%d > %d <\n", i, j, stepNumber, gameBoard[i][j].value)
+	//fmt.Printf("[%d,%d] > %d <\n", i, j, gameBoard[i][j].value)
 
-	var lastBoardIndex int = len(gameBoard) -1
+	var lastCellIndex int = len(gameBoard) -1
 
 	// if indexes out of a gameBoard, return
-	if i < 0 || j < 0 || i > lastBoardIndex || j > lastBoardIndex {
+	if i < 0 || j < 0 || i > lastCellIndex || j > lastCellIndex {
 		return
 	}
 
 	// if already painted out, return
-	if 0 != gameBoard[i][j].paintedId && stepNumber == gameBoard[i][j].paintedOnStep {
+	if fieldEmptyCellId != gameBoard[i][j].paintedId {
 		return
 	}
 
@@ -325,7 +317,6 @@ func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, player *Player) {
 
 	// paint Out this cell
 	gameBoard[i][j].paintedId 		= player.stepId
-	gameBoard[i][j].paintedOnStep 	= stepNumber
 
 	// paint out neighboards
 	paintOutACell(gameBoard, i-1,	j,	player)
@@ -433,7 +424,7 @@ func debug_print_gameBoard(gameBoard [][]GameBoardNode) {
 
 	for _, row := range gameBoard {
 		for _, cell := range row {
-			fmt.Printf("%d,%d,%d,%d,%-5d ", cell.value, cell.belongsToPlayer, cell.paintedId, cell.paintedOnStep, cell.captured);
+			fmt.Printf("%d,%d,%d,%-5d ", cell.value, cell.belongsToPlayer, cell.paintedId, cell.captured);
 		}
 		fmt.Println();
 	}
@@ -772,7 +763,7 @@ func determinePossibleGameSituation(gameBoard [][]GameBoardNode, depth int, find
 	}
 
 
-	//calculateScoreOnBoard(gameBoard) // TODO: remove global variables (stepNumber)
+	//calculateScoreOnBoard(gameBoard)
 	pcPlayerScore   := getScorePerPlayer(gameBoard, fieldPCCellId);
 	userPlayerScore := getScorePerPlayer(gameBoard, fieldUserCellId);
 	if findBestForPC {
