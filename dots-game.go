@@ -558,7 +558,7 @@ func getWinner(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) (w
 
 func main() {
 
-	runtime.GOMAXPROCS(3)
+	runtime.GOMAXPROCS(4)
 
 	// handle ^C signal
 	signalChannel := make(chan os.Signal, 1)
@@ -606,7 +606,7 @@ func main() {
 		}
 
 		//doAIStepRandom(mainGameBoard);
-		doAIStep(mainGameBoard, 3);
+		doAIStep(mainGameBoard, 4);
 		calculateScoreOnBoard(mainGameBoard, &userPlayer, &pcPlayer)
 
 		//clear_screen_linux()
