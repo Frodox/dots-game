@@ -590,6 +590,7 @@ func main() {
 
 
 	var isWin int = 0
+	var gameTime int = 0
 	for /* empty */; isWin == 0; /* empty */ {
 
 		clear_screen_linux()
@@ -606,7 +607,15 @@ func main() {
 		}
 
 		//doAIStepRandom(mainGameBoard);
-		doAIStep(mainGameBoard, 4);
+		doAIStep(mainGameBoard, 3);
+		//switch {
+		//case gameTime < 4:
+			//doAIStep(mainGameBoard, 2);
+		//case gameTime < 6:
+			//doAIStep(mainGameBoard, 3);
+		//case gameTime > 5:
+			//doAIStep(mainGameBoard, 4);
+		//}
 		calculateScoreOnBoard(mainGameBoard, &userPlayer, &pcPlayer)
 
 		//clear_screen_linux()
@@ -616,6 +625,7 @@ func main() {
 			break;
 		}
 		//d("-----------------------------------------")
+		gameTime++
 	}
 
 	clear_screen_linux()
@@ -668,8 +678,8 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 	cellToDoStepScore := -1000000		// default score (unreal game score)
 	minScore := +1000000
 
-	N := gameBoardSize*gameBoardSize
-	sem := make(chan bool, N);  // semaphore pattern
+	//N := gameBoardSize*gameBoardSize
+	//sem := make(chan bool, N);  // semaphore pattern
 
 	/* TODO: оптимизация скорости
 	 * определяем игровую область,
@@ -680,7 +690,7 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 	for i := range gameBoard {
 		for j := range gameBoard[i] {
 
-			go func (i, j int) {
+			//go func (i, j int) {
 
 				if true == isCellAvailableForStep(gameBoard, i, j) {
 
@@ -692,7 +702,7 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 					doGameStep(gameBoardDuplicate, i, j, fieldPCCellId);
 					tmp_score := determinePossibleGameSituation(gameBoardDuplicate, depth, true);
 
-					fmt.Printf("=> If go to [%d, %c]: score may be %d  \n", i, chars[j], tmp_score);
+					//fmt.Printf("=> If go to [%d, %c]: score may be %d  \n", i, chars[j], tmp_score);
 					if tmp_score > cellToDoStepScore {
 						cellToDoStepX = i
 						cellToDoStepY = j
@@ -705,18 +715,18 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 					undoGameStep(gameBoardDuplicate, i, j);
 				}
 
-				sem <- true;
+				//sem <- true;
 
-			} (i, j);
+			//} (i, j);
 
 
 		}
 	}
 
 	// wait for all routins
-	for i := 0; i < N; i++ {
-		<-sem
-	}
+	//for i := 0; i < N; i++ {
+		//<-sem
+	//}
 
 	/* TODO: If "best" cell does not exist
 	 * or all cells are "same":
