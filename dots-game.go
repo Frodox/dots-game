@@ -20,7 +20,7 @@ import (
 )
 
 // --------------------------------- CONSTS -------------------------------- //
-const gameBoardSize			int = 4
+const gameBoardSize			int = 7
 
 const fieldEmptyCellChar	string = "."
 const fieldUserCellChar		string = "*"
@@ -86,16 +86,16 @@ func initGameBoard(size int) (gameBoard [][]GameBoardNode) {
 	}
 
 	// debug
-	gameBoard[0][0].value, gameBoard[0][0].belongsToPlayer  = 1,1
-	gameBoard[0][1].value, gameBoard[0][1].belongsToPlayer  = 1,1
-	gameBoard[0][2].value, gameBoard[0][2].belongsToPlayer  = 1,1
-	gameBoard[1][0].value, gameBoard[1][0].belongsToPlayer  = 1,1
-	gameBoard[1][3].value, gameBoard[1][3].belongsToPlayer  = 1,1
-	gameBoard[2][0].value, gameBoard[2][0].belongsToPlayer  = 1,1
-	gameBoard[2][3].value, gameBoard[2][3].belongsToPlayer  = 1,1
-	gameBoard[3][0].value, gameBoard[3][0].belongsToPlayer  = 1,1
-	gameBoard[3][1].value, gameBoard[3][1].belongsToPlayer  = 1,1
-	gameBoard[3][2].value, gameBoard[3][2].belongsToPlayer  = 1,1
+	//gameBoard[0][0].value, gameBoard[0][0].belongsToPlayer  = 1,1
+	//gameBoard[0][1].value, gameBoard[0][1].belongsToPlayer  = 1,1
+	//gameBoard[0][2].value, gameBoard[0][2].belongsToPlayer  = 1,1
+	//gameBoard[1][0].value, gameBoard[1][0].belongsToPlayer  = 1,1
+	//gameBoard[1][3].value, gameBoard[1][3].belongsToPlayer  = 1,1
+	//gameBoard[2][0].value, gameBoard[2][0].belongsToPlayer  = 1,1
+	//gameBoard[2][3].value, gameBoard[2][3].belongsToPlayer  = 1,1
+	//gameBoard[3][0].value, gameBoard[3][0].belongsToPlayer  = 1,1
+	//gameBoard[3][1].value, gameBoard[3][1].belongsToPlayer  = 1,1
+	//gameBoard[3][2].value, gameBoard[3][2].belongsToPlayer  = 1,1
 
 	return
 }
@@ -106,7 +106,7 @@ func initGameBoard(size int) (gameBoard [][]GameBoardNode) {
  */
 func pause() {
 	for {
-
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -474,10 +474,9 @@ func getScorePerPlayer(gameBoard [][]GameBoardNode, playerStepID int) (score int
 
 	score = 0
 
-	for i, row := range gameBoard {
-		for j, cell := range row {
+	for _, row := range gameBoard {
+		for _, cell := range row {
 			if cell.captured == 1 && cell.belongsToPlayer == playerStepID && cell.value != playerStepID {
-				//fmt.Printf("score++ for: [%d; %c]\n", i, chars[j]);
 				score++
 			}
 		}
@@ -491,7 +490,7 @@ func getScorePerPlayer(gameBoard [][]GameBoardNode, playerStepID int) (score int
 func debug_print_gameBoard(gameBoard [][]GameBoardNode) {
 	// print all field in readable format
 
-	fmt.Printf("val,pla,painId,paintS,Capt\n");
+	fmt.Printf("val,BTP,PId,Capt\n");
 
 	for _, row := range gameBoard {
 		for _, cell := range row {
@@ -603,8 +602,8 @@ func main() {
 			break
 		}
 
-		doAIStepRandom(mainGameBoard);
-		//doAIStep(mainGameBoard, 0);
+		//doAIStepRandom(mainGameBoard);
+		doAIStep(mainGameBoard, 0);
 		calculateScoreOnBoard(mainGameBoard, &userPlayer, &pcPlayer)
 
 		//clear_screen_linux()
@@ -664,8 +663,7 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 	cellToDoStepX := -1
 	cellToDoStepY := -1
 	cellToDoStepScore := -1000000		// default score (unreal game score)
-	//firstNewScore := cellToDoStepScore
-	//firstStep := true
+	minScore := 0
 
 	/* TODO: оптимизация скорости
 	 * определяем игровую область,
@@ -685,14 +683,14 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 				doGameStep(gameBoardDuplicate, i, j, fieldPCCellId);
 				tmp_score := determinePossibleGameSituation(gameBoardDuplicate, depth, true);
 
+				fmt.Printf("=> If go to [%d, %c]: score'll be %d\n", i, chars[j], tmp_score);
 				if tmp_score > cellToDoStepScore {
 					cellToDoStepX = i
 					cellToDoStepY = j
 					cellToDoStepScore = tmp_score
-					//if firstStep {
-						//firstNewScore = cellToDoStepScore
-						//firstStep = false
-					//}
+				}
+				if tmp_score < minScore {
+					minScore = tmp_score
 				}
 
 				undoGameStep(gameBoardDuplicate, i, j);
@@ -704,15 +702,14 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 	 * or all cells are "same":
 	 * determine step by heuristic (see web article) */
 	/* for simpleness : use random now */
-	//if -1 == cellToDoStepX || cellToDoStepScore == firstNewScore {
+	if -1 == cellToDoStepX || cellToDoStepScore == minScore {
 		////cellToDoStepX, cellToDoStepY = determinePCStepByHeuristic(gameBoard);
-		//fmt.Printf("All cells are same on given depth. No matter what to do");
-		//doAIStepRandom(gameBoard);
-	//} else {
-		//// do step on real game board
-		//doGameStep(gameBoard, cellToDoStepX, cellToDoStepY, fieldPCCellId);
-	//}
-	doGameStep(gameBoard, cellToDoStepX, cellToDoStepY, fieldPCCellId);
+		fmt.Printf("All cells are same on given depth. No matter what to do\n");
+		doAIStepRandom(gameBoard);
+	} else {
+		// do step on real game board
+		doGameStep(gameBoard, cellToDoStepX, cellToDoStepY, fieldPCCellId);
+	}
 }
 
 /* -------------------------------------------------------------------------- */
@@ -736,14 +733,14 @@ func getGameBoardCopy (gameBoard [][]GameBoardNode) (duplicate [][]GameBoardNode
 		copy(duplicate[i], gameBoard[i])
 	}
 
-	debug_print_gameBoard(duplicate);
+	//debug_print_gameBoard(duplicate);
 	return
 }
 
 /* --------------------------------------------------------------------------- */
 
 /*
-Функция определяет ситуацию (лучшую, или худшую. Зависит от того, для какого игрока вызываем)
+Функция определяет ситуацию (лучшую, или худшую. в зав-сти от параметра)
 на игровом поле на определённой глубине просчёта.
 
 Ходим во все ячейки на заданную глубину и смотрим,
@@ -759,7 +756,6 @@ func determinePossibleGameSituation(gameBoard [][]GameBoardNode, depth int, find
 	// TODO: в зависимости от игрока (findBestForPC), ищем или максимум или минимум
 	gameSituation = -10000 // maybe set it as current situation
 
-	// TODO: конец игрового поля, походили во все клетки уже - возвращаем текущий "счёт"
 	if 0 != depth {
 
 		// loop over free for step cells
@@ -791,14 +787,15 @@ func determinePossibleGameSituation(gameBoard [][]GameBoardNode, depth int, find
 
 	}
 
+	// return current score
+	userPlayer	:= Player{stepId: fieldUserCellId, score: 0}
+	pcPlayer	:= Player{stepId: fieldPCCellId,   score: 0}
+	calculateScoreOnBoard(gameBoard, &userPlayer, &pcPlayer)
 
-	//calculateScoreOnBoard(gameBoard)
-	pcPlayerScore   := getScorePerPlayer(gameBoard, fieldPCCellId);
-	userPlayerScore := getScorePerPlayer(gameBoard, fieldUserCellId);
 	if findBestForPC {
-		gameSituation = pcPlayerScore - userPlayerScore
+		gameSituation = pcPlayer.score - userPlayer.score
 	} else {
-		gameSituation = userPlayerScore - pcPlayerScore
+		gameSituation = userPlayer.score - pcPlayer.score
 	}
 
 	return
