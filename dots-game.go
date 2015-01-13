@@ -607,24 +607,26 @@ func main() {
 		}
 
 		//doAIStepRandom(mainGameBoard);
-		doAIStep(mainGameBoard, 3);
-		//switch {
-		//case gameTime < 4:
-			//doAIStep(mainGameBoard, 2);
-		//case gameTime < 6:
-			//doAIStep(mainGameBoard, 3);
-		//case gameTime > 5:
-			//doAIStep(mainGameBoard, 4);
-		//}
+		//doAIStep(mainGameBoard, 3);
+		switch {
+		case gameTime < 4:
+			doAIStep(mainGameBoard, 2);
+		case gameTime < 6:
+			doAIStep(mainGameBoard, 3);
+		case gameTime < 9:
+			doAIStep(mainGameBoard, 4);
+		case gameTime > 8:
+			doAIStep(mainGameBoard, 5);
+		default:
+			doAIStepRandom(mainGameBoard);
+		}
 		calculateScoreOnBoard(mainGameBoard, &userPlayer, &pcPlayer)
 
-		//clear_screen_linux()
-		//drawGameBoard(mainGameBoard, &userPlayer, &pcPlayer)
 		isWin = getWinner(mainGameBoard, &userPlayer, &pcPlayer);
 		if 0 != isWin {
 			break;
 		}
-		//d("-----------------------------------------")
+
 		gameTime++
 	}
 
@@ -646,7 +648,7 @@ func doAIStepRandom(gameBoard [][]GameBoardNode) {
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	// loop untill do some step
+	// loop untill done some legal step
 	for {
 		// suppose that field is square/rectangle
 		var x int = rand.Intn(gameBoardSize)
@@ -683,9 +685,9 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 
 	/* TODO: оптимизация скорости
 	 * определяем игровую область,
-	 * в которой будем проводить расчёты и прогнозирования
-	 * HINT: для маленького поля может не потребоваться */
+	 * в которой будем проводить расчёты и прогнозирования */
 
+	// TODO: look at situation when game board ends
 	// loop over free for step cells
 	for i := range gameBoard {
 		for j := range gameBoard[i] {
@@ -702,7 +704,7 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 					doGameStep(gameBoardDuplicate, i, j, fieldPCCellId);
 					tmp_score := determinePossibleGameSituation(gameBoardDuplicate, depth, true);
 
-					//fmt.Printf("=> If go to [%d, %c]: score may be %d  \n", i, chars[j], tmp_score);
+					fmt.Printf("=> If go to [%d, %c]: score may be %d  \n", i, chars[j], tmp_score);
 					if tmp_score > cellToDoStepScore {
 						cellToDoStepX = i
 						cellToDoStepY = j
@@ -716,7 +718,6 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 				}
 
 				//sem <- true;
-
 			//} (i, j);
 
 
@@ -738,6 +739,7 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 		doAIStepRandom(gameBoard);
 	} else {
 		// do step on real game board
+		fmt.Printf("D: AI: do step: [%d; %c]\n", cellToDoStepX, chars[cellToDoStepY]);
 		doGameStep(gameBoard, cellToDoStepX, cellToDoStepY, fieldPCCellId);
 	}
 }
@@ -822,7 +824,8 @@ func determinePossibleGameSituation(gameBoard [][]GameBoardNode, depth int, find
 			gameSituation = minScore
 			return gameSituation
 		} else {
-			return gameSituation
+			gameSituation += depth
+			return
 		}
 
 	}
@@ -832,20 +835,9 @@ func determinePossibleGameSituation(gameBoard [][]GameBoardNode, depth int, find
 	pcPlayer	:= Player{stepId: fieldPCCellId,   score: 0}
 	calculateScoreOnBoard(gameBoard, &userPlayer, &pcPlayer)
 
-	//if findBestForPC {
-		//gameSituation = pcPlayer.score - userPlayer.score
-	//} else {
-		//gameSituation = userPlayer.score - pcPlayer.score
-	//}
-	//fmt.Println("D: dps: User score: ", userPlayer.score);
-	//fmt.Println("D: dps: PC score: ", pcPlayer.score);
 	gameSituation = pcPlayer.score - userPlayer.score
 
 	return
 }
 
-
 /* --------------------------------------------------------------------------- */
-
-
-
