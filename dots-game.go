@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"math/rand"
+	"runtime"
 )
 
 // --------------------------------- CONSTS -------------------------------- //
@@ -557,6 +558,8 @@ func getWinner(gameBoard [][]GameBoardNode, player1 *Player, player2 *Player) (w
 
 func main() {
 
+	runtime.GOMAXPROCS(3)
+
 	// handle ^C signal
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel,
@@ -665,6 +668,9 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 	cellToDoStepScore := -1000000		// default score (unreal game score)
 	minScore := +1000000
 
+	N := gameBoardSize*gameBoardSize
+	sem := make(chan bool, N);  // semaphore pattern
+
 	/* TODO: оптимизация скорости
 	 * определяем игровую область,
 	 * в которой будем проводить расчёты и прогнозирования
@@ -674,34 +680,42 @@ func doAIStep(gameBoard [][]GameBoardNode, depth int) {
 	for i := range gameBoard {
 		for j := range gameBoard[i] {
 
-			//go func (int i, j, depth) {
-				
-			//} (i, j, depth) ;
-			if true == isCellAvailableForStep(gameBoard, i, j) {
+			go func (i, j int) {
 
-				// create a dublicate of game board, operate with it next
-				gameBoardDuplicate := getGameBoardCopy(gameBoard);
+				if true == isCellAvailableForStep(gameBoard, i, j) {
 
-				// do steps on fake game board and
-				// look what'll happen on some depth
-				doGameStep(gameBoardDuplicate, i, j, fieldPCCellId);
-				tmp_score := determinePossibleGameSituation(gameBoardDuplicate, depth, true);
+					// create a dublicate of game board, operate with it next
+					gameBoardDuplicate := getGameBoardCopy(gameBoard);
 
-				fmt.Printf("=> If go to [%d, %c]: score may be %d  \n", i, chars[j], tmp_score);
-				if tmp_score > cellToDoStepScore {
-					cellToDoStepX = i
-					cellToDoStepY = j
-					cellToDoStepScore = tmp_score
+					// do steps on fake game board and
+					// look what'll happen on some depth
+					doGameStep(gameBoardDuplicate, i, j, fieldPCCellId);
+					tmp_score := determinePossibleGameSituation(gameBoardDuplicate, depth, true);
+
+					fmt.Printf("=> If go to [%d, %c]: score may be %d  \n", i, chars[j], tmp_score);
+					if tmp_score > cellToDoStepScore {
+						cellToDoStepX = i
+						cellToDoStepY = j
+						cellToDoStepScore = tmp_score
+					}
+					if tmp_score < minScore {
+						minScore = tmp_score
+					}
+
+					undoGameStep(gameBoardDuplicate, i, j);
 				}
-				if tmp_score < minScore {
-					minScore = tmp_score
-				}
 
-				undoGameStep(gameBoardDuplicate, i, j);
-			}
+				sem <- true;
+
+			} (i, j);
 
 
 		}
+	}
+
+	// wait for all routins
+	for i := 0; i < N; i++ {
+		<-sem
 	}
 
 	/* TODO: If "best" cell does not exist
