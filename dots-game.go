@@ -21,7 +21,7 @@ import (
 )
 
 // --------------------------------- CONSTS -------------------------------- //
-const gameBoardSize			int = 6
+const gameBoardSize			int = 7
 
 const fieldEmptyCellChar	string = "."
 const fieldUserCellChar		string = "*"
@@ -29,7 +29,7 @@ const fieldPCCellChar		string = "+"
 const fieldCapturedCellChar	string = "#"
 
 const fieldEmptyCellId		int = 0
-const fieldUserCellId 		int = 1
+const fieldUserCellId		int = 1
 const fieldPCCellId			int = 2
 
 const CLR_0 = "\x1b[30;1m"
@@ -54,7 +54,7 @@ type GameBoardNode struct {
 
 type Player struct {
 	stepId	int;		// 0, 1, 2 (Empty, User, PC)
-	score 	int;		//  score of this player. 0 by default
+	score	int;		//  score of this player. 0 by default
 }
 
 type GameBoardCell struct {
@@ -285,7 +285,7 @@ func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result i
 
 	canDoStep := isCellAvailableForStep(gameBoard, x, y);
 	if true == canDoStep {
-		gameBoard[x][y].value 			= symbol
+		gameBoard[x][y].value			= symbol
 		gameBoard[x][y].belongsToPlayer = symbol
 		result = 0
 	}
@@ -299,7 +299,7 @@ func doGameStep(gameBoard [][]GameBoardNode, x int, y int, symbol int) (result i
  * Undo any step on given game board in given cell
  */
 func undoGameStep(gameBoard [][]GameBoardNode, x int, y int) {
-	gameBoard[x][y].value 			= fieldEmptyCellId
+	gameBoard[x][y].value			= fieldEmptyCellId
 	gameBoard[x][y].belongsToPlayer = fieldEmptyCellId
 }
 
@@ -368,7 +368,7 @@ func paintOutACell(gameBoard [][]GameBoardNode, i int, j int, playerStepID int) 
 	}
 
 	// paint Out this cell
-	gameBoard[i][j].paintedId 		= playerStepID
+	gameBoard[i][j].paintedId		= playerStepID
 
 	// paint out neighboards
 	paintOutACell(gameBoard, i-1,	j,	playerStepID)
@@ -585,8 +585,8 @@ func main() {
 	//time.Sleep(2 * time.Second)
 
 	var mainGameBoard [][]GameBoardNode = initGameBoard(gameBoardSize)
-	var userPlayer 	= Player{stepId: fieldUserCellId, score: 0}
-	var pcPlayer 	= Player{stepId: fieldPCCellId, score: 0}
+	var userPlayer	= Player{stepId: fieldUserCellId, score: 0}
+	var pcPlayer	= Player{stepId: fieldPCCellId, score: 0}
 
 
 	var isWin int = 0
